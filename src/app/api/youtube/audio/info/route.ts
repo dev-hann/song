@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getInnertube, clearInnertubeCache } from '@/lib/youtube';
+import { getInnertube } from '@/lib/youtube';
 import { fromBasicInfo } from '@/models/audio';
 import { AudioInfoResponseSchema } from '@/schemas/api';
 import type { ExtendedAudio } from '@/types';
-
-export const runtime = 'nodejs';
 
 /**
  * GET handler for YouTube audio info API.
@@ -25,25 +23,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<ExtendedAu
   }
 
   try {
-    let innertube = await getInnertube();
-    let info;
-    
-    // Log platform type for debugging
-    console.log(`[DEBUG] Process platform: ${process.platform}`);
-    console.log(`[DEBUG] Node version: ${process.version}`);
-    
-    // Retry with fresh instance if first attempt fails
-    try {
-      info = await innertube.getInfo(id);
-      console.log(`[DEBUG] getInfo basic_info.id: ${info.basic_info?.id}, primary_info exists: ${!!info.primary_info}`);
-    } catch (error) {
-      console.log(`[DEBUG] First attempt failed:`, error);
-      // Clear cache and retry once
-      clearInnertubeCache();
-      innertube = await getInnertube();
-      info = await innertube.getInfo(id);
-      console.log(`[DEBUG] Retry basic_info.id: ${info.basic_info?.id}, primary_info exists: ${!!info.primary_info}`);
-    }
+    const innertube = await getInnertube();
+    const info = await innertube.getBasicInfo(id);
 
     const audioInfo = fromBasicInfo(info);
     const validatedResponse = AudioInfoResponseSchema.parse(audioInfo);

@@ -2,8 +2,6 @@ import { Innertube, Platform, Types } from 'youtubei.js';
 
 // Cache innertube instance to avoid re-initializing on each request
 let innertubeInstance: Innertube | null = null;
-let platformInitialized = false;
-let retryCount = 0;
 
 // Custom eval shim required by YouTube.js for browser compatibility
 Platform.shim.eval = async (data: Types.BuildScriptResult, env: Record<string, Types.VMPrimative>) => {
@@ -33,31 +31,14 @@ async function getInnertube(): Promise<Innertube> {
     return innertubeInstance;
   }
 
-  // Force Node.js platform to load on server side
-  if (!platformInitialized && typeof process !== 'undefined' && process.versions?.node) {
-    await import('youtubei.js', { with: { 'node': 'import' } });
-    platformInitialized = true;
-  }
-
   innertubeInstance = await Innertube.create({
-    generate_session_locally: false,
-    enable_session_cache: true,
+    generate_session_locally: true,
+    enable_session_cache: false,
     lang: 'ko',
     location: 'KR',
   });
 
-  // Reset retry count on successful creation
-  retryCount = 0;
-
   return innertubeInstance;
-}
-
-/**
- * Clears the cached Innertube instance.
- * Used when retrying after an error.
- */
-export function clearInnertubeCache(): void {
-  innertubeInstance = null;
 }
 
 export { getInnertube };

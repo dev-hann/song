@@ -3,8 +3,6 @@ import { getInnertube } from '@/lib/youtube';
 import { SearchParamsSchema } from '@/schemas/api';
 import { SearchResponseSchema, toSearchResponse } from '@/models/search';
 
-export const runtime = 'nodejs';
-
 /**
  * GET handler for YouTube music search API.
  * Searches for videos matching the query parameter.
