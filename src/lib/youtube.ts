@@ -39,8 +39,8 @@ async function getInnertube(): Promise<Innertube> {
   }
 
   innertubeInstance = await Innertube.create({
-    generate_session_locally: true,
-    enable_session_cache: false,
+    generate_session_locally: false,
+    enable_session_cache: true,
     lang: 'ko',
     location: 'KR',
   });
