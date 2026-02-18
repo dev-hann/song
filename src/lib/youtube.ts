@@ -2,6 +2,7 @@ import { Innertube, Platform, Types } from 'youtubei.js';
 
 // Cache innertube instance to avoid re-initializing on each request
 let innertubeInstance: Innertube | null = null;
+let platformInitialized = false;
 
 // Custom eval shim required by YouTube.js for browser compatibility
 Platform.shim.eval = async (data: Types.BuildScriptResult, env: Record<string, Types.VMPrimative>) => {
@@ -29,6 +30,12 @@ Platform.shim.eval = async (data: Types.BuildScriptResult, env: Record<string, T
 async function getInnertube(): Promise<Innertube> {
   if (innertubeInstance) {
     return innertubeInstance;
+  }
+
+  // Force Node.js platform to load on server side
+  if (!platformInitialized && typeof process !== 'undefined' && process.versions?.node) {
+    await import('youtubei.js', { with: { 'node': 'import' } });
+    platformInitialized = true;
   }
 
   innertubeInstance = await Innertube.create({
