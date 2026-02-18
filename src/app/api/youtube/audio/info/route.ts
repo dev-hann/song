@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getInnertube } from '@/lib/youtube';
+import { getInnertube, clearInnertubeCache } from '@/lib/youtube';
 import { fromBasicInfo } from '@/models/audio';
 import { AudioInfoResponseSchema } from '@/schemas/api';
 import type { ExtendedAudio } from '@/types';
@@ -23,8 +23,18 @@ export async function GET(request: NextRequest): Promise<NextResponse<ExtendedAu
   }
 
   try {
-    const innertube = await getInnertube();
-    const info = await innertube.getInfo(id);
+    let innertube = await getInnertube();
+    let info;
+    
+    // Retry with fresh instance if first attempt fails
+    try {
+      info = await innertube.getInfo(id);
+    } catch (error) {
+      // Clear cache and retry once
+      clearInnertubeCache();
+      innertube = await getInnertube();
+      info = await innertube.getInfo(id);
+    }
 
     const audioInfo = fromBasicInfo(info);
     const validatedResponse = AudioInfoResponseSchema.parse(audioInfo);

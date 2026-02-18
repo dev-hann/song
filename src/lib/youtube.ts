@@ -3,6 +3,7 @@ import { Innertube, Platform, Types } from 'youtubei.js';
 // Cache innertube instance to avoid re-initializing on each request
 let innertubeInstance: Innertube | null = null;
 let platformInitialized = false;
+let retryCount = 0;
 
 // Custom eval shim required by YouTube.js for browser compatibility
 Platform.shim.eval = async (data: Types.BuildScriptResult, env: Record<string, Types.VMPrimative>) => {
@@ -45,7 +46,18 @@ async function getInnertube(): Promise<Innertube> {
     location: 'KR',
   });
 
+  // Reset retry count on successful creation
+  retryCount = 0;
+
   return innertubeInstance;
+}
+
+/**
+ * Clears the cached Innertube instance.
+ * Used when retrying after an error.
+ */
+export function clearInnertubeCache(): void {
+  innertubeInstance = null;
 }
 
 export { getInnertube };
