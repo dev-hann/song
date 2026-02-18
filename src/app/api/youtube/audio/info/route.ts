@@ -4,6 +4,8 @@ import { fromBasicInfo } from '@/models/audio';
 import { AudioInfoResponseSchema } from '@/schemas/api';
 import type { ExtendedAudio } from '@/types';
 
+export const runtime = 'nodejs';
+
 /**
  * GET handler for YouTube audio info API.
  * Fetches basic information for a given video ID.

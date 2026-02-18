@@ -3,9 +3,11 @@ import { getInnertube } from '@/lib/youtube';
 import { DownloadResponseSchema } from '@/schemas/api';
 import type { StreamUrlResponse } from '@/types';
 
+export const runtime = 'nodejs';
+
 /**
  * GET handler for YouTube audio stream URL API.
- * Fetches the streaming URL for a given video ID.
+ * Fetches streaming URL for a given video ID.
  *
  * @param request - Next.js request object with id parameter
  * @returns Stream URL or error response
