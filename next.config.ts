@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['youtubei.js'],
+  webpack: (config) => {
+    config.externals.push({
+      'youtubei.js': 'commonjs youtubei.js',
+    });
+    return config;
+  },
   images: {
     remotePatterns: [
       {
