@@ -51,27 +51,43 @@ export type Audio = z.infer<typeof AudioSchema>;
 export type ExtendedAudio = Omit<z.infer<typeof AudioSchema>, 'isLive'> & { uploadDate?: Date };
 
 export function fromBasicInfo(ytBasicInfo: unknown): ExtendedAudio {
-  const validated = YouTubeBasicInfoSchema.parse(ytBasicInfo);
-  const { basic_info, channel } = validated;
+  // Handle case where basic_info might be undefined (YouTube bot detection)
+  const rawData = ytBasicInfo as any;
   
-  const thumbnail = basic_info.thumbnail[0]?.url || '';
-  const channelThumbnail = channel?.thumbnails[0]?.url;
-  const uploadDate = basic_info.upload_date ? new Date(basic_info.upload_date) : undefined;
+  // If basic_info exists, validate it; otherwise use raw data
+  const basic_info = rawData.basic_info;
+  const channel = rawData.channel;
+  
+  // Fallback: extract data from raw response if basic_info is missing
+  const id = basic_info?.id || rawData.id || rawData.page?.[0]?.video_details?.id;
+  const title = basic_info?.title || rawData.title || rawData.page?.[0]?.video_details?.title;
+  const shortDescription = basic_info?.short_description || rawData.description || '';
+  const duration = basic_info?.duration || rawData.duration || rawData.page?.[0]?.video_details?.duration;
+  const viewCount = basic_info?.view_count || rawData.view_count || 0;
+  const uploadDate = basic_info?.upload_date || rawData.upload_date;
+  const channelId = basic_info?.channel_id || rawData.channel_id || rawData.page?.[0]?.video_details?.channel_id;
+  const channelName = channel?.name || rawData.channel?.name || '';
+  const channelThumbnail = channel?.thumbnails?.[0]?.url;
+  const thumbnail = basic_info?.thumbnail?.[0]?.url || rawData.thumbnail || '';
+  
+  if (!id || !title) {
+    throw new Error('Required video info missing: id and/or title');
+  }
   
   return {
-    id: basic_info.id,
+    id,
     type: 'video',
-    title: basic_info.title,
-    description: basic_info.short_description,
-    duration: basic_info.duration,
-    viewCount: basic_info.view_count,
-    published: basic_info.upload_date,
+    title,
+    description: shortDescription,
+    duration,
+    viewCount,
+    published: uploadDate,
     thumbnail,
     channel: {
-      id: basic_info.channel_id,
-      name: channel?.name || '',
+      id: channelId,
+      name: channelName,
       thumbnail: channelThumbnail
     },
-    uploadDate
+    uploadDate: uploadDate ? new Date(uploadDate) : undefined
   };
 }
