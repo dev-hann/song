@@ -59,16 +59,17 @@ export function fromBasicInfo(ytBasicInfo: unknown): ExtendedAudio {
   const channel = rawData.channel;
   
   // Fallback: extract data from raw response if basic_info is missing
-  const id = basic_info?.id || rawData.id || rawData.page?.[0]?.videoId || rawData.videoId;
-  const title = basic_info?.title || rawData.title || rawData.page?.[0]?.title || rawData.primaryInfo?.title?.text;
-  const shortDescription = basic_info?.short_description || rawData.description || '';
-  const duration = basic_info?.duration || rawData.duration || rawData.page?.[0]?.lengthMs / 1000 || 0;
+  const primaryInfo = rawData.primary_info;
+  const id = basic_info?.id || rawData.id || primaryInfo?.id;
+  const title = basic_info?.title || rawData.title || primaryInfo?.title?.text;
+  const shortDescription = basic_info?.short_description || primaryInfo?.description?.text || '';
+  const duration = basic_info?.duration || rawData.duration || (primaryInfo?.lengthText || '0').replace(' seconds', '');
   const viewCount = basic_info?.view_count || rawData.view_count || 0;
   const uploadDate = basic_info?.upload_date || rawData.upload_date;
-  const channelId = basic_info?.channel_id || rawData.channel_id || rawData.page?.[0]?.longBylineText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId;
-  const channelName = channel?.name || rawData.channel?.name || rawData.page?.[0]?.longBylineText?.runs?.[0]?.text || '';
-  const channelThumbnail = channel?.thumbnails?.[0]?.url || rawData.page?.[0]?.channelThumbnail?.thumbnails?.[0]?.url;
-  const thumbnail = basic_info?.thumbnail?.[0]?.url || rawData.thumbnail || rawData.page?.[0]?.thumbnail?.thumbnails?.[0]?.url || '';
+  const channelId = basic_info?.channel_id || rawData.channel_id || primaryInfo?.channelId;
+  const channelName = channel?.name || rawData.channel?.name || primaryInfo?.longBylineText?.text || '';
+  const channelThumbnail = channel?.thumbnails?.[0]?.url || primaryInfo?.thumbnail?.thumbnails?.[0]?.url;
+  const thumbnail = basic_info?.thumbnail?.[0]?.url || rawData.thumbnail || primaryInfo?.thumbnail?.thumbnails?.[0]?.url || '';
   
   if (!id || !title) {
     throw new Error(`Required video info missing: id=${id}, title=${title}. Raw keys: ${Object.keys(rawData).join(', ')}`);
