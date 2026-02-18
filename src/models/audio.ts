@@ -61,18 +61,18 @@ export function fromBasicInfo(ytBasicInfo: unknown): ExtendedAudio {
   // Fallback: extract data from raw response if basic_info is missing
   const primaryInfo = rawData.primary_info;
   const id = basic_info?.id || rawData.id || primaryInfo?.id;
-  const title = basic_info?.title || rawData.title || primaryInfo?.title?.text;
+  const title = basic_info?.title || rawData.title || (primaryInfo?.title?.runs?.[0]?.text || '');
   const shortDescription = basic_info?.short_description || primaryInfo?.description?.text || '';
-  const duration = basic_info?.duration || rawData.duration || (primaryInfo?.lengthText || '0').replace(' seconds', '');
+  const duration = basic_info?.duration || rawData.duration || parseFloat((primaryInfo?.lengthText?.runs?.[0]?.text || '0').replace(' seconds', '')) || 0;
   const viewCount = basic_info?.view_count || rawData.view_count || 0;
   const uploadDate = basic_info?.upload_date || rawData.upload_date;
   const channelId = basic_info?.channel_id || rawData.channel_id || primaryInfo?.channelId;
-  const channelName = channel?.name || rawData.channel?.name || primaryInfo?.longBylineText?.text || '';
+  const channelName = channel?.name || rawData.channel?.name || (primaryInfo?.longBylineText?.runs?.[0]?.text || '');
   const channelThumbnail = channel?.thumbnails?.[0]?.url || primaryInfo?.thumbnail?.thumbnails?.[0]?.url;
   const thumbnail = basic_info?.thumbnail?.[0]?.url || rawData.thumbnail || primaryInfo?.thumbnail?.thumbnails?.[0]?.url || '';
   
   if (!id || !title) {
-    throw new Error(`Required video info missing: id=${id}, title=${title}. Raw keys: ${Object.keys(rawData).join(', ')}`);
+    throw new Error(`Required video info missing: id=${String(id)}, title=${String(title)}. Primary info: ${JSON.stringify(primaryInfo)}`);
   }
   
   return {
