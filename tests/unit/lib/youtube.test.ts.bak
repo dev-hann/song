@@ -1,0 +1,66 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('youtubei.js', () => ({
+  Innertube: {
+    create: vi.fn(),
+  },
+}));
+
+describe('getInnertube', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
+  it('should create new Innertube instance on first call', async () => {
+    const { getInnertube } = await import('@/lib/youtube');
+    const mockInnertube = { session: {} };
+    const { Innertube } = await import('youtubei.js');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(Innertube.create).mockResolvedValue(mockInnertube as any);
+
+    const result = await getInnertube();
+
+    expect(Innertube.create).toHaveBeenCalledWith({
+      generate_session_locally: true,
+      enable_session_cache: false,
+      lang: 'ko',
+      location: 'KR',
+    });
+    expect(result).toBe(mockInnertube);
+  });
+
+  it('should return cached instance on subsequent calls', async () => {
+    const { getInnertube } = await import('@/lib/youtube');
+    const mockInnertube = { session: {} };
+    const { Innertube } = await import('youtubei.js');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(Innertube.create).mockResolvedValue(mockInnertube as any);
+
+    const firstCall = await getInnertube();
+    const secondCall = await getInnertube();
+
+    expect(Innertube.create).toHaveBeenCalledTimes(1);
+    expect(firstCall).toBe(secondCall);
+  });
+});
+
+describe('getYouTubeSession', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
+  it('should return session from Innertube instance', async () => {
+    const { getYouTubeSession } = await import('@/lib/youtube');
+    const mockSession = { key: 'value' };
+    const mockInnertube = { session: mockSession };
+    const { Innertube } = await import('youtubei.js');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(Innertube.create).mockResolvedValue(mockInnertube as any);
+
+    const session = await getYouTubeSession();
+
+    expect(session).toBe(mockSession);
+  });
+});
