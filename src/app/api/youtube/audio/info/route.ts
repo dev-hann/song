@@ -24,7 +24,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ExtendedAu
 
   try {
     const innertube = await getInnertube();
-    const info = await innertube.getBasicInfo(id, { client: 'ANDROID' });
+    const info = await innertube.getInfo(id);
 
     const audioInfo = fromBasicInfo(info);
     const validatedResponse = AudioInfoResponseSchema.parse(audioInfo);
