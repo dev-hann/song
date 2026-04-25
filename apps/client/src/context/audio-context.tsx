@@ -3,8 +3,8 @@ import {
   useContext,
   useRef,
   useEffect,
+  useLayoutEffect,
   useState,
-  useCallback,
   type ReactNode,
 } from 'react';
 import { useAudioStore } from '@/store';
@@ -37,10 +37,13 @@ function applyMediaSessionMetadata(audio: {
   });
 }
 
+function ensureUnmuted(el: HTMLVideoElement) {
+  if (el.muted) el.muted = false;
+  if (el.volume !== 1) el.volume = 1;
+}
+
 export function AudioProvider({ children }: { children: ReactNode }) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const keepaliveCtxRef = useRef<AudioContext | null>(null);
-  const keepaliveOscRef = useRef<OscillatorNode | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [buffered, setBuffered] = useState(0);
@@ -61,42 +64,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   const { data: streamData } = useAudioStream(audio?.id ?? null);
 
-  const startKeepalive = useCallback(() => {
-    if (keepaliveCtxRef.current) return;
-    try {
-      const ctx = new AudioContext();
-      const gain = ctx.createGain();
-      gain.gain.value = 0.001;
-      const osc = ctx.createOscillator();
-      osc.frequency.value = 1;
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      keepaliveCtxRef.current = ctx;
-      keepaliveOscRef.current = osc;
-    } catch {}
-  }, []);
-
-  const stopKeepalive = useCallback(() => {
-    try {
-      keepaliveOscRef.current?.stop();
-      keepaliveOscRef.current?.disconnect();
-      keepaliveCtxRef.current?.close();
-    } catch {}
-    keepaliveCtxRef.current = null;
-    keepaliveOscRef.current = null;
-  }, []);
-
   useEffect(() => {
-    if (status === AudioStatus.PLAYING) {
-      startKeepalive();
-    } else {
-      stopKeepalive();
-    }
-  }, [status, startKeepalive, stopKeepalive]);
-
-  useEffect(() => {
-    const el = audioRef.current;
+    const el = videoRef.current;
     if (!el || !streamData?.url) return;
 
     const currentAudio = useAudioStore.getState().audio;
@@ -113,8 +82,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         if ('mediaSession' in navigator) {
           navigator.mediaSession.playbackState = 'playing';
         }
+        ensureUnmuted(el);
         setStatus(AudioStatus.PLAYING);
-        el.play().catch(console.error);
+        el.play().then(() => ensureUnmuted(el)).catch(console.error);
       }
     };
 
@@ -124,8 +94,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     };
   }, [streamData?.url, audio?.id]);
 
-  useEffect(() => {
-    const el = audioRef.current;
+  useLayoutEffect(() => {
+    const el = videoRef.current;
     if (!el || !el.src) return;
 
     if (status === AudioStatus.PLAYING) {
@@ -134,7 +104,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       if ('mediaSession' in navigator) {
         navigator.mediaSession.playbackState = 'playing';
       }
-      el.play().catch(console.error);
+      ensureUnmuted(el);
+      el.play().then(() => ensureUnmuted(el)).catch(console.error);
     } else if (status === AudioStatus.PAUSED) {
       if ('mediaSession' in navigator) {
         navigator.mediaSession.playbackState = 'paused';
@@ -144,12 +115,12 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }, [status]);
 
   useEffect(() => {
-    const el = audioRef.current;
+    const el = videoRef.current;
     if (el) el.playbackRate = playback.speed;
   }, [playback.speed]);
 
   useEffect(() => {
-    const el = audioRef.current;
+    const el = videoRef.current;
     if (!el) return;
 
     const onTimeUpdate = () => {
@@ -171,6 +142,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     const onEnded = () => {
       if (repeatMode === RepeatMode.ONE) {
         el.currentTime = 0;
+        ensureUnmuted(el);
         el.play().catch(console.error);
       } else {
         playNext();
@@ -185,6 +157,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     const onStalled = () => {
       const s = useAudioStore.getState().status;
       if (s === AudioStatus.PLAYING && el.paused) {
+        ensureUnmuted(el);
         el.play().catch(() => {});
       }
     };
@@ -194,16 +167,20 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         el.removeEventListener('canplay', resumeOnCanPlay);
         const s = useAudioStore.getState().status;
         if (s === AudioStatus.PLAYING) {
+          ensureUnmuted(el);
           el.play().catch(console.error);
         }
       };
       el.addEventListener('canplay', resumeOnCanPlay);
     };
 
-    const onSuspend = () => {
-      const s = useAudioStore.getState().status;
-      if (s === AudioStatus.PLAYING && el.paused) {
-        el.play().catch(() => {});
+    const onVolumeChange = () => {
+      if (el.muted || el.volume === 0) {
+        const s = useAudioStore.getState().status;
+        if (s === AudioStatus.PLAYING) {
+          el.muted = false;
+          el.volume = 1;
+        }
       }
     };
 
@@ -214,7 +191,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     el.addEventListener('error', onError);
     el.addEventListener('stalled', onStalled);
     el.addEventListener('waiting', onWaiting);
-    el.addEventListener('suspend', onSuspend);
+    el.addEventListener('volumechange', onVolumeChange);
 
     return () => {
       el.removeEventListener('timeupdate', onTimeUpdate);
@@ -224,7 +201,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       el.removeEventListener('error', onError);
       el.removeEventListener('stalled', onStalled);
       el.removeEventListener('waiting', onWaiting);
-      el.removeEventListener('suspend', onSuspend);
+      el.removeEventListener('volumechange', onVolumeChange);
     };
   }, [
     updatePlaybackTime,
@@ -263,19 +240,23 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
 
-    navigator.mediaSession.setActionHandler('play', () => setStatus(AudioStatus.PLAYING));
+    navigator.mediaSession.setActionHandler('play', () => {
+      const el = videoRef.current;
+      if (el) ensureUnmuted(el);
+      setStatus(AudioStatus.PLAYING);
+    });
     navigator.mediaSession.setActionHandler('pause', () => setStatus(AudioStatus.PAUSED));
     navigator.mediaSession.setActionHandler('previoustrack', () => playPrevious());
     navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
     navigator.mediaSession.setActionHandler('seekto', (details) => {
-      const el = audioRef.current;
+      const el = videoRef.current;
       if (!el || details.seekTime == null) return;
       el.currentTime = details.seekTime;
       setCurrentTime(details.seekTime);
       updatePlaybackTime(details.seekTime);
     });
     navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-      const el = audioRef.current;
+      const el = videoRef.current;
       if (!el) return;
       const time = Math.max(0, el.currentTime - (details.seekOffset || 10));
       el.currentTime = time;
@@ -283,7 +264,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       updatePlaybackTime(time);
     });
     navigator.mediaSession.setActionHandler('seekforward', (details) => {
-      const el = audioRef.current;
+      const el = videoRef.current;
       if (!el) return;
       const time = Math.min(el.duration || 0, el.currentTime + (details.seekOffset || 10));
       el.currentTime = time;
@@ -309,7 +290,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
-    const el = audioRef.current;
+    const el = videoRef.current;
     if (!el || !el.duration || !isFinite(el.duration)) return;
     navigator.mediaSession.setPositionState({
       duration: el.duration,
@@ -320,18 +301,26 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') return;
-      const el = audioRef.current;
+      const el = videoRef.current;
       if (!el) return;
-
       const s = useAudioStore.getState().status;
-      if (s === AudioStatus.PLAYING && el.paused) {
-        const a = useAudioStore.getState().audio;
-        if (a) applyMediaSessionMetadata(a);
-        if ('mediaSession' in navigator) {
-          navigator.mediaSession.playbackState = 'playing';
+
+      if (document.visibilityState === 'hidden') {
+        if (s === AudioStatus.PLAYING) {
+          ensureUnmuted(el);
         }
-        el.play().catch(console.error);
+      } else {
+        if (s === AudioStatus.PLAYING) {
+          const a = useAudioStore.getState().audio;
+          if (a) applyMediaSessionMetadata(a);
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = 'playing';
+          }
+          ensureUnmuted(el);
+          if (el.paused) {
+            el.play().then(() => ensureUnmuted(el)).catch(console.error);
+          }
+        }
       }
     };
 
@@ -342,7 +331,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const seek = (time: number) => {
-    const el = audioRef.current;
+    const el = videoRef.current;
     if (!el) return;
     el.currentTime = time;
     setCurrentTime(time);
@@ -357,17 +346,18 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   };
 
   const setSpeed = (speed: number) => {
-    if (audioRef.current) audioRef.current.playbackRate = speed;
+    if (videoRef.current) videoRef.current.playbackRate = speed;
     updatePlaybackSpeed(speed);
   };
 
   return (
     <AudioCtx.Provider value={{ seek, setSpeed, currentTime, duration, buffered }}>
-      <audio
-        ref={audioRef}
+      <video
+        ref={videoRef}
         playsInline
         preload="auto"
-        style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}
+        disableRemotePlayback
+        style={{ position: 'fixed', top: '-1px', left: '-1px', width: '1px', height: '1px', pointerEvents: 'none' }}
       />
       {children}
     </AudioCtx.Provider>

@@ -51,6 +51,18 @@ export default defineConfig({
               },
             },
           },
+          {
+            urlPattern: /^https:\/\/.*\.googlevideo\.com/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'audio-stream-cache',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 2,
+              },
+              rangeRequests: true,
+            },
+          },
         ],
       },
     }),

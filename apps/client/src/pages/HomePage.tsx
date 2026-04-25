@@ -6,6 +6,7 @@ import { Play, ChevronRight, Loader2 } from 'lucide-react';
 import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
 import { AddToPlaylistSheet } from '@/components/ui/add-to-playlist-sheet';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 const genres = [
   { label: 'K-Pop', query: 'K-Pop 2025', gradient: 'from-pink-500 to-rose-900' },
@@ -30,7 +31,7 @@ function ChartItemSkeleton() {
 
 export default function HomePage() {
   const { data, isLoading } = useHomeData();
-  const { setQueue } = useAudioStore();
+  const { setQueue, setAudio } = useAudioStore();
   const navigate = useNavigate();
 
   const [contextTrack, setContextTrack] = useState<{
@@ -64,7 +65,11 @@ export default function HomePage() {
           })),
           0,
         );
+      } else {
+        toast.error('검색 결과를 찾을 수 없습니다');
       }
+    } catch {
+      toast.error('재생 중 오류가 발생했습니다');
     } finally {
       setLoadingChartIndex(null);
     }
@@ -141,9 +146,18 @@ export default function HomePage() {
               <button
                 key={item.video_id}
                 onClick={() => {
-                  useAudioStore.getState().setAudioById(item.video_id);
+                  setAudio({
+                    id: item.video_id,
+                    type: 'video',
+                    title: item.title,
+                    description: '',
+                    duration: item.duration,
+                    viewCount: 0,
+                    thumbnail: item.thumbnail,
+                    channel: { name: item.channel },
+                  });
                 }}
-                className="flex-shrink-0 w-28"
+                className="flex-shrink-0 w-28 active:scale-95 transition-transform"
               >
                 <div className="w-28 h-28 rounded-xl overflow-hidden bg-surface mb-0">
                   {item.thumbnail && (
