@@ -2,47 +2,31 @@
   "name": "song",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "dev": "concurrently \"npm run dev --workspace=@song/client\" \"npm run dev --workspace=@song/server\"",
+    "dev:client": "npm run dev --workspace=@song/client",
+    "dev:server": "npm run dev --workspace=@song/server",
+    "build": "turbo build",
+    "build:client": "npm run build --workspace=@song/client",
+    "build:server": "npm run build --workspace=@song/server",
+    "start": "npm run start --workspace=@song/server",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "npm run test --workspace=@song/client",
+    "test:watch": "npm run test:watch --workspace=@song/client",
+    "test:coverage": "npm run test:coverage --workspace=@song/client",
+    "test:e2e": "playwright test"
   },
-  "dependencies": {
-    "@tanstack/react-query": "^5.90.21",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.574.0",
-    "next": "16.1.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "tailwind-merge": "^3.4.1",
-    "youtubei.js": "^16.0.1",
-    "zod": "^4.3.6",
-    "zustand": "^5.0.11"
-  },
+  "packageManager": "npm@10.9.7",
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@tailwindcss/postcss": "^4",
-    "@tanstack/react-query-devtools": "^5.91.3",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@vitejs/plugin-react": "^5.1.4",
-    "@vitest/coverage-v8": "^4.0.18",
+    "concurrently": "^9.1.2",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "jsdom": "^28.1.0",
-    "msw": "^2.12.10",
-    "tailwindcss": "^4",
-    "typescript": "^5",
-    "vitest": "^4.0.18"
+    "turbo": "^2"
   }
 }
