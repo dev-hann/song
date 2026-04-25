@@ -4,6 +4,7 @@ import {
   useRef,
   useEffect,
   useState,
+  useCallback,
   type ReactNode,
 } from 'react';
 import { useAudioStore } from '@/store';
@@ -21,8 +22,25 @@ interface AudioContextValue {
 
 const AudioCtx = createContext<AudioContextValue | null>(null);
 
+function applyMediaSessionMetadata(audio: {
+  title: string;
+  channel?: { name?: string };
+  thumbnail: string;
+}) {
+  if (!('mediaSession' in navigator)) return;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: audio.title,
+    artist: audio.channel?.name || '',
+    artwork: [
+      { src: audio.thumbnail, sizes: '512x512', type: 'image/jpeg' },
+    ],
+  });
+}
+
 export function AudioProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const keepaliveCtxRef = useRef<AudioContext | null>(null);
+  const keepaliveOscRef = useRef<OscillatorNode | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [buffered, setBuffered] = useState(0);
@@ -43,16 +61,58 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   const { data: streamData } = useAudioStream(audio?.id ?? null);
 
+  const startKeepalive = useCallback(() => {
+    if (keepaliveCtxRef.current) return;
+    try {
+      const ctx = new AudioContext();
+      const gain = ctx.createGain();
+      gain.gain.value = 0.001;
+      const osc = ctx.createOscillator();
+      osc.frequency.value = 1;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      keepaliveCtxRef.current = ctx;
+      keepaliveOscRef.current = osc;
+    } catch {}
+  }, []);
+
+  const stopKeepalive = useCallback(() => {
+    try {
+      keepaliveOscRef.current?.stop();
+      keepaliveOscRef.current?.disconnect();
+      keepaliveCtxRef.current?.close();
+    } catch {}
+    keepaliveCtxRef.current = null;
+    keepaliveOscRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (status === AudioStatus.PLAYING) {
+      startKeepalive();
+    } else {
+      stopKeepalive();
+    }
+  }, [status, startKeepalive, stopKeepalive]);
+
   useEffect(() => {
     const el = audioRef.current;
     if (!el || !streamData?.url) return;
+
+    const currentAudio = useAudioStore.getState().audio;
+    if (currentAudio) applyMediaSessionMetadata(currentAudio);
 
     el.src = streamData.url;
     el.load();
 
     const handleCanPlay = () => {
-      const currentStatus = useAudioStore.getState().status;
-      if (currentStatus === AudioStatus.LOADING || currentStatus === AudioStatus.PLAYING) {
+      const s = useAudioStore.getState().status;
+      if (s === AudioStatus.LOADING || s === AudioStatus.PLAYING) {
+        const a = useAudioStore.getState().audio;
+        if (a) applyMediaSessionMetadata(a);
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'playing';
+        }
         setStatus(AudioStatus.PLAYING);
         el.play().catch(console.error);
       }
@@ -62,15 +122,23 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     return () => {
       el.removeEventListener('canplay', handleCanPlay);
     };
-  }, [streamData?.url]);
+  }, [streamData?.url, audio?.id]);
 
   useEffect(() => {
     const el = audioRef.current;
     if (!el || !el.src) return;
 
     if (status === AudioStatus.PLAYING) {
+      const currentAudio = useAudioStore.getState().audio;
+      if (currentAudio) applyMediaSessionMetadata(currentAudio);
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
       el.play().catch(console.error);
     } else if (status === AudioStatus.PAUSED) {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
       el.pause();
     }
   }, [status]);
@@ -114,11 +182,39 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       setStatus(AudioStatus.ERROR);
     };
 
+    const onStalled = () => {
+      const s = useAudioStore.getState().status;
+      if (s === AudioStatus.PLAYING && el.paused) {
+        el.play().catch(() => {});
+      }
+    };
+
+    const onWaiting = () => {
+      const resumeOnCanPlay = () => {
+        el.removeEventListener('canplay', resumeOnCanPlay);
+        const s = useAudioStore.getState().status;
+        if (s === AudioStatus.PLAYING) {
+          el.play().catch(console.error);
+        }
+      };
+      el.addEventListener('canplay', resumeOnCanPlay);
+    };
+
+    const onSuspend = () => {
+      const s = useAudioStore.getState().status;
+      if (s === AudioStatus.PLAYING && el.paused) {
+        el.play().catch(() => {});
+      }
+    };
+
     el.addEventListener('timeupdate', onTimeUpdate);
     el.addEventListener('loadedmetadata', onLoadedMetadata);
     el.addEventListener('progress', onProgress);
     el.addEventListener('ended', onEnded);
     el.addEventListener('error', onError);
+    el.addEventListener('stalled', onStalled);
+    el.addEventListener('waiting', onWaiting);
+    el.addEventListener('suspend', onSuspend);
 
     return () => {
       el.removeEventListener('timeupdate', onTimeUpdate);
@@ -126,6 +222,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       el.removeEventListener('progress', onProgress);
       el.removeEventListener('ended', onEnded);
       el.removeEventListener('error', onError);
+      el.removeEventListener('stalled', onStalled);
+      el.removeEventListener('waiting', onWaiting);
+      el.removeEventListener('suspend', onSuspend);
     };
   }, [
     updatePlaybackTime,
@@ -158,11 +257,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!audio || !('mediaSession' in navigator)) return;
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: audio.title,
-      artist: audio.channel?.name || '',
-      artwork: [{ src: audio.thumbnail, sizes: '512x512', type: 'image/jpeg' }],
-    });
+    applyMediaSessionMetadata(audio);
   }, [audio]);
 
   useEffect(() => {
@@ -223,6 +318,29 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     });
   }, [duration]);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      const el = audioRef.current;
+      if (!el) return;
+
+      const s = useAudioStore.getState().status;
+      if (s === AudioStatus.PLAYING && el.paused) {
+        const a = useAudioStore.getState().audio;
+        if (a) applyMediaSessionMetadata(a);
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'playing';
+        }
+        el.play().catch(console.error);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const seek = (time: number) => {
     const el = audioRef.current;
     if (!el) return;
@@ -245,7 +363,12 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   return (
     <AudioCtx.Provider value={{ seek, setSpeed, currentTime, duration, buffered }}>
-      <audio ref={audioRef} playsInline className="hidden" />
+      <audio
+        ref={audioRef}
+        playsInline
+        preload="auto"
+        style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}
+      />
       {children}
     </AudioCtx.Provider>
   );
