@@ -1,37 +1,7 @@
 import { z } from 'zod';
 import type { SearchResultAudio as SearchResultAudioType, SearchResponse as SearchResponseType } from '@song/types';
 import { ThumbnailSchema } from './audio.js';
-
-const YouTubeSearchResultSchema = z.object({
-  type: z.literal('Video'),
-  id: z.union([z.string(), z.object({ video_id: z.string() })]),
-  video_id: z.string().optional(),
-  title: z.union([z.string(), z.object({ text: z.string() })]),
-  thumbnails: z
-    .array(
-      z.object({
-        url: z.string(),
-      }),
-    )
-    .optional(),
-  duration: z
-    .object({
-      seconds: z.number().optional(),
-    })
-    .optional(),
-  author: z
-    .object({
-      name: z.string(),
-      thumbnails: z
-        .array(
-          z.object({
-            url: z.string(),
-          }),
-        )
-        .optional(),
-    })
-    .optional(),
-});
+import { YouTubeVideoItemSchema, extractVideoFields, isAudioContent } from './youtube-common.js';
 
 export const SearchResultAudioSchema = z.object({
   id: z.string(),
@@ -53,21 +23,13 @@ export const SearchResponseSchema = z.object({
 export type SearchResultAudio = SearchResultAudioType;
 export type SearchResponse = SearchResponseType;
 
-export function isAudioContent(duration: number): boolean {
-  return duration >= 30 && duration <= 900;
-}
+export { isAudioContent };
 
 export function toSearchResultAudio(item: unknown): SearchResultAudio | null {
-  const result = YouTubeSearchResultSchema.safeParse(item);
+  const result = YouTubeVideoItemSchema.safeParse(item);
   if (!result.success) return null;
 
-  const data = result.data;
-  const id = data.video_id || (typeof data.id === 'string' ? data.id : '');
-  const title = typeof data.title === 'string' ? data.title : data.title.text;
-  const thumbnail = data.thumbnails?.[0]?.url || '';
-  const duration = data.duration?.seconds || 0;
-  const channelName = data.author?.name || '';
-  const channelThumbnail = data.author?.thumbnails?.[0]?.url;
+  const { id, title, thumbnail, duration, channelName, channelThumbnail } = extractVideoFields(result.data);
 
   if (!isAudioContent(duration)) return null;
 

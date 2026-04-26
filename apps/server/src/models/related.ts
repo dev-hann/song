@@ -1,24 +1,7 @@
 import { z } from 'zod';
-import { isAudioContent } from './search.js';
+import { isAudioContent } from './youtube-common.js';
+import { YouTubeVideoItemSchema, extractVideoFields } from './youtube-common.js';
 import type { SearchResultAudio } from '@song/types';
-
-const RelatedVideoSchema = z.object({
-  id: z.union([z.string(), z.object({ video_id: z.string() })]),
-  video_id: z.string().optional(),
-  title: z.union([z.string(), z.object({ text: z.string() })]),
-  thumbnails: z
-    .array(z.object({ url: z.string() }))
-    .optional(),
-  duration: z
-    .object({ seconds: z.number().optional() })
-    .optional(),
-  author: z
-    .object({
-      name: z.string(),
-      thumbnails: z.array(z.object({ url: z.string() })).optional(),
-    })
-    .optional(),
-});
 
 export const RelatedVideosResponseSchema = z.object({
   videoId: z.string(),
@@ -35,16 +18,10 @@ export const RelatedVideosResponseSchema = z.object({
 });
 
 export function toRelatedAudio(item: unknown): SearchResultAudio | null {
-  const result = RelatedVideoSchema.safeParse(item);
+  const result = YouTubeVideoItemSchema.safeParse(item);
   if (!result.success) return null;
 
-  const data = result.data;
-  const id = data.video_id || (typeof data.id === 'string' ? data.id : '');
-  const title = typeof data.title === 'string' ? data.title : data.title.text;
-  const thumbnail = data.thumbnails?.[0]?.url || '';
-  const duration = data.duration?.seconds || 0;
-  const channelName = data.author?.name || '';
-  const channelThumbnail = data.author?.thumbnails?.[0]?.url;
+  const { id, title, thumbnail, duration, channelName, channelThumbnail } = extractVideoFields(result.data);
 
   if (!id || !title) return null;
   if (!isAudioContent(duration)) return null;

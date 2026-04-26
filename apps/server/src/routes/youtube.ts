@@ -101,8 +101,6 @@ router.get('/audio/stream', async (req, res) => {
   }
 });
 
-export default router;
-
 router.get('/audio/related', async (req, res) => {
   const paramsResult = VideoIdSchema.safeParse(req.query);
 
@@ -241,6 +239,14 @@ function streamWithRetry(
   let currentReader = initialResponse.body!.getReader();
   let closed = false;
   let retryCount = 0;
+  let totalBytesWritten = 0;
+
+  const initialRange = req.headers.range as string | undefined;
+  const initialOffset = (() => {
+    if (!initialRange) return 0;
+    const match = initialRange.match(/bytes=(\d+)-/);
+    return match ? parseInt(match[1], 10) : 0;
+  })();
 
   const cleanup = () => {
     if (!closed) {
@@ -258,6 +264,8 @@ function streamWithRetry(
         const { done, value } = await currentReader.read();
         if (done) break;
 
+        totalBytesWritten += value.length;
+
         if (!res.write(value)) {
           await new Promise<void>((resolve) =>
             res.once('drain', resolve),
@@ -272,21 +280,14 @@ function streamWithRetry(
         console.warn(`[Audio Play] Stream retry ${retryCount}/${MAX_RETRIES} for ${id}`);
 
         try {
-          const bytesWritten = parseInt(res.getHeader('content-length') as string || '0', 10);
-          const initialRange = req.headers.range as string | undefined;
-          let retryRange = initialRange;
+          const resumeOffset = initialOffset + totalBytesWritten;
+          let retryRange = `bytes=${resumeOffset}-`;
 
           if (initialRange) {
-            const match = initialRange.match(/bytes=(\d+)-/);
-            if (match) {
-              const startOffset = parseInt(match[1], 10) + bytesWritten;
-              const endMatch = initialRange.match(/-(\d+)/);
-              retryRange = endMatch
-                ? `bytes=${startOffset}-${endMatch[1]}`
-                : `bytes=${startOffset}-`;
-            }
-          } else if (bytesWritten > 0) {
-            retryRange = `bytes=${bytesWritten}-`;
+            const endMatch = initialRange.match(/-(\d+)/);
+            retryRange = endMatch
+              ? `bytes=${resumeOffset}-${endMatch[1]}`
+              : `bytes=${resumeOffset}-`;
           }
 
           streamCache.delete(id);
@@ -320,3 +321,5 @@ function streamWithRetry(
 
   pump();
 }
+
+export default router;

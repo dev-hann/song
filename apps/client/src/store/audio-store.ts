@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Audio } from '@/types';
 import { AudioStatus, RepeatMode } from '@/constants';
 import { audioPlayer } from '@/lib/audio-player';
+import { fetchAudioInfo, addLike, removeLike, fetchRelatedTracks } from '@/services/api';
 
 interface AudioPlayback {
   currentTime: number;
@@ -63,7 +64,6 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
   setAudioById: async (audioId: string) => {
     set({ status: AudioStatus.LOADING });
     try {
-      const { fetchAudioInfo } = await import('@/services/api');
       const data = await fetchAudioInfo(audioId);
       const audio: Audio = {
         id: data.id,
@@ -133,7 +133,6 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
 
     (async () => {
       try {
-        const { addLike, removeLike } = await import('@/services/api');
         const audio = state.audio!;
         const track = {
           video_id: audio.id,
@@ -170,7 +169,6 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
           if (autoplay && audio) {
             (async () => {
               try {
-                const { fetchRelatedTracks } = await import('@/services/api');
                 const related = await fetchRelatedTracks(audio.id);
                 if (related.results.length > 0) {
                   const tracks = related.results.map((r) => ({

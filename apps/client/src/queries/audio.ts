@@ -1,6 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ExtendedAudio } from '@/types';
-import type { StreamUrlResponse } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import type { ExtendedAudio, StreamUrlResponse } from '@/types';
 import { queryKeys } from './keys';
 import { queryOptions } from './options';
 import { fetchAudioInfo, fetchAudioStream } from '@/services/api';
@@ -20,20 +19,5 @@ export function useAudioStreamQuery(id: string | null) {
     queryFn: () => fetchAudioStream(id!),
     enabled: !!id,
     ...queryOptions.audioStream,
-  });
-}
-
-export function useLikeMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (_id: string) => {
-      return Promise.resolve();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.youtube.audio.all(),
-      });
-    },
   });
 }

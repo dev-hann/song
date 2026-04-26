@@ -6,15 +6,16 @@ import { AppLayout } from './components/app-layout';
 import { AudioProvider } from './context/audio-context';
 import { AuthProvider, useAuth } from './context/auth-context';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import HomePage from './pages/HomePage';
-import SearchPage from './pages/SearchPage';
-import LibraryPage from './pages/LibraryPage';
-import PlaylistDetailPage from './pages/PlaylistDetailPage';
-import LikedPage from './pages/LikedPage';
-import RecentPage from './pages/RecentPage';
-import MelonChartPage from './pages/MelonChartPage';
-import LoginPage from './pages/LoginPage';
-import type { ReactNode } from 'react';
+import { lazy, Suspense, Component, type ReactNode } from 'react';
+
+const HomePage = lazy(() => import('./pages/HomePage'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
+const LibraryPage = lazy(() => import('./pages/LibraryPage'));
+const PlaylistDetailPage = lazy(() => import('./pages/PlaylistDetailPage'));
+const LikedPage = lazy(() => import('./pages/LikedPage'));
+const RecentPage = lazy(() => import('./pages/RecentPage'));
+const MelonChartPage = lazy(() => import('./pages/MelonChartPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,41 +27,76 @@ const queryClient = new QueryClient({
   },
 });
 
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>
+          <h2>문제가 발생했습니다</h2>
+          <button
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}
+          >
+            새로고침
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function ProtectedRoutes({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
+function PageFallback() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh', color: '#666' }}>
+      로딩 중...
+    </div>
+  );
+}
+
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />}
-      />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoutes>
-            <AppLayout>
-              <Routes>
-                <Route path="/" element={<Navigate to="/home" replace />} />
-                <Route path="/home" element={<HomePage />} />
-                <Route path="/search" element={<SearchPage />} />
-                <Route path="/library" element={<LibraryPage />} />
-                <Route path="/playlist/:id" element={<PlaylistDetailPage />} />
-                <Route path="/liked" element={<LikedPage />} />
-                <Route path="/recent" element={<RecentPage />} />
-                <Route path="/chart" element={<MelonChartPage />} />
-              </Routes>
-            </AppLayout>
-          </ProtectedRoutes>
-        }
-      />
-    </Routes>
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />}
+        />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoutes>
+              <AppLayout>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/home" replace />} />
+                  <Route path="/home" element={<HomePage />} />
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route path="/library" element={<LibraryPage />} />
+                  <Route path="/playlist/:id" element={<PlaylistDetailPage />} />
+                  <Route path="/liked" element={<LikedPage />} />
+                  <Route path="/recent" element={<RecentPage />} />
+                  <Route path="/chart" element={<MelonChartPage />} />
+                </Routes>
+              </AppLayout>
+            </ProtectedRoutes>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 }
 
@@ -72,7 +108,9 @@ export function App() {
           <AuthProvider>
             <TooltipProvider>
               <AudioProvider>
-                <AppRoutes />
+                <ErrorBoundary>
+                  <AppRoutes />
+                </ErrorBoundary>
                 <Toaster
                   position="top-center"
                   toastOptions={{

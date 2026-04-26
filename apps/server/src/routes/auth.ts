@@ -86,7 +86,6 @@ router.post('/verify', authRateLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('[Auth Verify] Error:', error);
-    console.error('[Auth Verify] GOOGLE_CLIENT_ID:', env.GOOGLE_CLIENT_ID ? '설정됨' : '설정 안됨');
     res.status(401).json({ error: 'Google 인증에 실패했습니다.' });
   }
 });

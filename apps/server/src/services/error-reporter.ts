@@ -18,8 +18,18 @@ interface ErrorCacheEntry {
 
 const errorCache = new Map<string, ErrorCacheEntry>();
 const MAX_ISSUES_PER_HOUR = 10;
+const CACHE_TTL = 24 * 60 * 60 * 1000;
 let issuesThisHour = 0;
 let lastHourReset = Date.now();
+
+function evictExpiredEntries() {
+  const now = Date.now();
+  for (const [key, entry] of errorCache) {
+    if (now - entry.lastSeen.getTime() > CACHE_TTL) {
+      errorCache.delete(key);
+    }
+  }
+}
 
 function generateFingerprint(message: string, route?: string): string {
   const content = `${message}::${route || 'unknown'}`;
@@ -103,6 +113,10 @@ export async function reportError(
     lastSeen: new Date(),
   };
   errorCache.set(fingerprint, cacheEntry);
+
+  if (errorCache.size > 200) {
+    evictExpiredEntries();
+  }
 
   if (!checkRateLimit()) {
     console.warn('[ErrorReporter] Rate limit reached, skipping GitHub Issue creation');
