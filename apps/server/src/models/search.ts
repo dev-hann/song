@@ -53,6 +53,10 @@ export const SearchResponseSchema = z.object({
 export type SearchResultAudio = SearchResultAudioType;
 export type SearchResponse = SearchResponseType;
 
+export function isAudioContent(duration: number): boolean {
+  return duration >= 30 && duration <= 900;
+}
+
 export function toSearchResultAudio(item: unknown): SearchResultAudio | null {
   const result = YouTubeSearchResultSchema.safeParse(item);
   if (!result.success) return null;
@@ -64,6 +68,8 @@ export function toSearchResultAudio(item: unknown): SearchResultAudio | null {
   const duration = data.duration?.seconds || 0;
   const channelName = data.author?.name || '';
   const channelThumbnail = data.author?.thumbnails?.[0]?.url;
+
+  if (!isAudioContent(duration)) return null;
 
   return {
     id,

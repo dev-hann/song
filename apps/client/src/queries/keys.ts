@@ -36,4 +36,14 @@ export const queryKeys = {
   home: {
     all: () => [...queryKeys.all, 'home'] as const,
   },
+
+  melon: {
+    chart: (type: string = 'realtime') => [...queryKeys.all, 'melon', 'chart', type] as const,
+  },
+
+  recommendations: {
+    all: () => [...queryKeys.all, 'recommendations'] as const,
+    related: (videoId: string) => [...queryKeys.all, 'recommendations', 'related', videoId] as const,
+    personalized: () => [...queryKeys.all, 'recommendations', 'personalized'] as const,
+  },
 } as const;

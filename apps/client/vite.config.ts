@@ -2,9 +2,17 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { readFileSync } from 'node:fs';
 import path from 'path';
 
+const { version } = JSON.parse(
+  readFileSync(path.join(__dirname, 'package.json'), 'utf-8'),
+);
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -49,18 +57,6 @@ export default defineConfig({
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 * 7,
               },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/.*\.googlevideo\.com/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'audio-stream-cache',
-              expiration: {
-                maxEntries: 20,
-                maxAgeSeconds: 60 * 60 * 2,
-              },
-              rangeRequests: true,
             },
           },
         ],

@@ -16,6 +16,7 @@ export interface AudioStore {
   shuffle: boolean;
   queue: Audio[];
   currentIndex: number;
+  autoplay: boolean;
 
   setAudio: (audio: Audio) => void;
   setAudioById: (audioId: string) => Promise<void>;
@@ -35,4 +36,5 @@ export interface AudioStore {
   addNext: (audio: Audio) => void;
   removeFromQueue: (index: number) => void;
   clearQueue: () => void;
+  toggleAutoplay: () => void;
 }

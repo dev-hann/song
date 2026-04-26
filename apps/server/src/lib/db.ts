@@ -15,8 +15,25 @@ export function getDb(): Database.Database {
   db.pragma('foreign_keys = ON');
 
   db.exec(`
-    CREATE TABLE IF NOT EXISTS playlists (
+    DROP TABLE IF EXISTS playlists;
+    DROP TABLE IF EXISTS playlist_tracks;
+    DROP TABLE IF EXISTS likes;
+    DROP TABLE IF EXISTS play_history;
+    DROP TABLE IF EXISTS followed_channels;
+
+    CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      picture TEXT DEFAULT '',
+      registered_at TEXT DEFAULT (datetime('now')),
+      last_login TEXT DEFAULT (datetime('now')),
+      is_active INTEGER DEFAULT 1
+    );
+
+    CREATE TABLE playlists (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       description TEXT DEFAULT '',
       cover_image TEXT DEFAULT '',
@@ -26,7 +43,7 @@ export function getDb(): Database.Database {
       updated_at TEXT DEFAULT (datetime('now'))
     );
 
-    CREATE TABLE IF NOT EXISTS playlist_tracks (
+    CREATE TABLE playlist_tracks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
       video_id TEXT NOT NULL,
@@ -39,17 +56,20 @@ export function getDb(): Database.Database {
       UNIQUE(playlist_id, video_id)
     );
 
-    CREATE TABLE IF NOT EXISTS likes (
-      video_id TEXT PRIMARY KEY,
+    CREATE TABLE likes (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      video_id TEXT NOT NULL,
       title TEXT NOT NULL,
       channel TEXT NOT NULL,
       thumbnail TEXT DEFAULT '',
       duration INTEGER DEFAULT 0,
-      liked_at TEXT DEFAULT (datetime('now'))
+      liked_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, video_id)
     );
 
-    CREATE TABLE IF NOT EXISTS play_history (
+    CREATE TABLE play_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       video_id TEXT NOT NULL,
       title TEXT NOT NULL,
       channel TEXT NOT NULL,
@@ -58,26 +78,35 @@ export function getDb(): Database.Database {
       played_at TEXT DEFAULT (datetime('now'))
     );
 
-    CREATE TABLE IF NOT EXISTS followed_channels (
-      channel_id TEXT PRIMARY KEY,
+    CREATE TABLE followed_channels (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      channel_id TEXT NOT NULL,
       channel_name TEXT NOT NULL,
       channel_thumbnail TEXT DEFAULT '',
       subscriber_count TEXT DEFAULT '',
-      followed_at TEXT DEFAULT (datetime('now'))
+      followed_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, channel_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS refresh_tokens (
+      id TEXT PRIMARY KEY,
+      token_hash TEXT UNIQUE NOT NULL,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
     );
 
     CREATE INDEX IF NOT EXISTS idx_playlist_tracks_playlist ON playlist_tracks(playlist_id);
     CREATE INDEX IF NOT EXISTS idx_playlist_tracks_sort ON playlist_tracks(playlist_id, sort_order);
-    CREATE INDEX IF NOT EXISTS idx_play_history_video ON play_history(video_id);
-    CREATE INDEX IF NOT EXISTS idx_play_history_played ON play_history(played_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_play_history_video ON play_history(user_id, video_id);
+    CREATE INDEX IF NOT EXISTS idx_play_history_played ON play_history(user_id, played_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_playlists_user ON playlists(user_id);
+    CREATE INDEX IF NOT EXISTS idx_likes_user ON likes(user_id);
+    CREATE INDEX IF NOT EXISTS idx_followed_channels_user ON followed_channels(user_id);
+    CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
+    CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
   `);
-
-  const liked = db.prepare("SELECT id FROM playlists WHERE id = 'liked'").get();
-  if (!liked) {
-    db.prepare(
-      "INSERT INTO playlists (id, name, description, is_system) VALUES ('liked', '좋아요한 곡', '', 1)",
-    ).run();
-  }
 
   return db;
 }

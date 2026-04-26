@@ -4,6 +4,7 @@ import { getDb } from '../lib/db.js';
 
 export const HistorySchema = z.object({
   id: z.number(),
+  user_id: z.string(),
   video_id: z.string(),
   title: z.string(),
   channel: z.string(),
@@ -14,16 +15,16 @@ export const HistorySchema = z.object({
 
 export type History = HistoryItem;
 
-export function getRecentHistory(limit = 100): History[] {
+export function getRecentHistory(userId: string, limit = 100): History[] {
   const db = getDb();
   return db
     .prepare(
-      `SELECT * FROM play_history ORDER BY played_at DESC LIMIT ?`,
+      `SELECT * FROM play_history WHERE user_id = ? ORDER BY played_at DESC LIMIT ?`,
     )
-    .all(limit) as History[];
+    .all(userId, limit) as History[];
 }
 
-export function addToHistory(track: {
+export function addToHistory(userId: string, track: {
   video_id: string;
   title: string;
   channel: string;
@@ -33,27 +34,27 @@ export function addToHistory(track: {
   const db = getDb();
 
   const existing = db
-    .prepare('SELECT id FROM play_history WHERE video_id = ? ORDER BY played_at DESC LIMIT 1')
-    .get(track.video_id) as { id: number } | undefined;
+    .prepare('SELECT id FROM play_history WHERE user_id = ? AND video_id = ? ORDER BY played_at DESC LIMIT 1')
+    .get(userId, track.video_id) as { id: number } | undefined;
 
   if (existing) {
     db.prepare("UPDATE play_history SET played_at = datetime('now') WHERE id = ?").run(existing.id);
   } else {
     db.prepare(
-      `INSERT INTO play_history (video_id, title, channel, thumbnail, duration, played_at)
-       VALUES (?, ?, ?, ?, ?, datetime('now'))`,
-    ).run(track.video_id, track.title, track.channel, track.thumbnail, track.duration);
+      `INSERT INTO play_history (user_id, video_id, title, channel, thumbnail, duration, played_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+    ).run(userId, track.video_id, track.title, track.channel, track.thumbnail, track.duration);
   }
 
-  const count = (db.prepare('SELECT COUNT(*) as count FROM play_history').get() as { count: number }).count;
+  const count = (db.prepare('SELECT COUNT(*) as count FROM play_history WHERE user_id = ?').get(userId) as { count: number }).count;
   if (count > 200) {
     db.prepare(
-      'DELETE FROM play_history WHERE id NOT IN (SELECT id FROM play_history ORDER BY played_at DESC LIMIT 100)',
-    ).run();
+      'DELETE FROM play_history WHERE user_id = ? AND id NOT IN (SELECT id FROM play_history WHERE user_id = ? ORDER BY played_at DESC LIMIT 100)',
+    ).run(userId, userId);
   }
 }
 
-export function clearHistory(): void {
+export function clearHistory(userId: string): void {
   const db = getDb();
-  db.prepare('DELETE FROM play_history').run();
+  db.prepare('DELETE FROM play_history WHERE user_id = ?').run(userId);
 }

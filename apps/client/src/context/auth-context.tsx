@@ -3,10 +3,13 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from 'react';
+import { setAccessToken, clearAuth } from '@/lib/api-client';
 
 interface User {
+  id: string;
   email: string;
   name: string;
   picture?: string;
@@ -14,21 +17,16 @@ interface User {
 
 interface AuthContextValue {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
-  setAuth: (token: string, user: User) => void;
+  setAuth: (accessToken: string, user: User) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const TOKEN_KEY = 'song_token';
 const USER_KEY = 'song_user';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem(TOKEN_KEY),
-  );
   const [user, setUser] = useState<User | null>(() => {
     try {
       const saved = localStorage.getItem(USER_KEY);
@@ -38,17 +36,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   });
 
-  const setAuth = useCallback((newToken: string, newUser: User) => {
-    localStorage.setItem(TOKEN_KEY, newToken);
+  useEffect(() => {
+    const handleExpired = () => setUser(null);
+    window.addEventListener('song:auth-expired', handleExpired);
+    return () => window.removeEventListener('song:auth-expired', handleExpired);
+  }, []);
+
+  const setAuth = useCallback((accessToken: string, newUser: User) => {
+    setAccessToken(accessToken);
     localStorage.setItem(USER_KEY, JSON.stringify(newUser));
-    setToken(newToken);
     setUser(newUser);
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    setToken(null);
+  const logout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+    } catch {}
+    clearAuth();
     setUser(null);
   }, []);
 
@@ -56,8 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        token,
-        isAuthenticated: !!token && !!user,
+        isAuthenticated: !!user,
         setAuth,
         logout,
       }}

@@ -233,7 +233,19 @@ describe('useAudioStore', () => {
   });
 
   describe('like', () => {
+    const mockAudio = {
+      id: 'test-id',
+      type: 'video' as const,
+      title: 'Test',
+      description: '',
+      duration: 0,
+      viewCount: 0,
+      thumbnail: '',
+      channel: { name: 'Test' },
+    };
+
     it('should toggle like from false to true', () => {
+      useAudioStore.setState({ audio: mockAudio });
       const { toggleLike } = useAudioStore.getState();
       expect(useAudioStore.getState().liked).toBe(false);
       
@@ -242,7 +254,7 @@ describe('useAudioStore', () => {
     });
 
     it('should toggle like from true to false', () => {
-      useAudioStore.setState({ liked: true });
+      useAudioStore.setState({ audio: mockAudio, liked: true });
       const { toggleLike } = useAudioStore.getState();
       
       toggleLike();

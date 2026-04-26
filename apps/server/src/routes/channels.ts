@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getInnertube } from '../services/youtube.js';
+import { authMiddleware } from '../middleware/auth.js';
 import {
   getFollowedChannels,
   followChannel,
@@ -9,9 +10,9 @@ import {
 
 const router = Router();
 
-router.get('/followed', (_req, res) => {
+router.get('/followed', authMiddleware, (req, res) => {
   try {
-    const channels = getFollowedChannels();
+    const channels = getFollowedChannels(req.user!.id);
     res.json(channels);
   } catch (error) {
     console.error('[Channels] Followed Error:', error);
@@ -60,7 +61,7 @@ router.get('/:id', async (req, res) => {
     }
 
     const meta = (channel as any).metadata || {};
-    const following = isFollowing(channelId);
+    const following = req.user ? isFollowing(req.user.id, channelId) : false;
 
     res.json({
       id: channelId,
@@ -76,7 +77,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/:id/follow', (req, res) => {
+router.post('/:id/follow', authMiddleware, (req, res) => {
   const { channel_name, channel_thumbnail, subscriber_count } = req.body;
 
   if (!channel_name) {
@@ -85,8 +86,8 @@ router.post('/:id/follow', (req, res) => {
   }
 
   try {
-    const channel = followChannel({
-      channel_id: req.params.id,
+    const channel = followChannel(req.user!.id, {
+      channel_id: req.params.id as string,
       channel_name,
       channel_thumbnail: channel_thumbnail || '',
       subscriber_count,
@@ -98,9 +99,9 @@ router.post('/:id/follow', (req, res) => {
   }
 });
 
-router.delete('/:id/follow', (req, res) => {
+router.delete('/:id/follow', authMiddleware, (req, res) => {
   try {
-    const removed = unfollowChannel(req.params.id);
+    const removed = unfollowChannel(req.user!.id, req.params.id as string);
     if (!removed) {
       res.status(404).json({ error: 'Not following this channel' });
       return;

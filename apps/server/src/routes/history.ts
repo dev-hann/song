@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authMiddleware } from '../middleware/auth.js';
 import {
   getRecentHistory,
   addToHistory,
@@ -6,11 +7,12 @@ import {
 } from '../models/history.js';
 
 const router = Router();
+router.use(authMiddleware);
 
 router.get('/', (req, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 100;
-    const history = getRecentHistory(limit);
+    const history = getRecentHistory(req.user!.id, limit);
     res.json(history);
   } catch (error) {
     console.error('[History] Error:', error);
@@ -27,7 +29,7 @@ router.post('/', (req, res) => {
   }
 
   try {
-    addToHistory({
+    addToHistory(req.user!.id, {
       video_id,
       title,
       channel: channel || '',
@@ -41,9 +43,9 @@ router.post('/', (req, res) => {
   }
 });
 
-router.delete('/', (_req, res) => {
+router.delete('/', (req, res) => {
   try {
-    clearHistory();
+    clearHistory(req.user!.id);
     res.json({ success: true });
   } catch (error) {
     console.error('[History] Clear Error:', error);

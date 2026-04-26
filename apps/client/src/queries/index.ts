@@ -7,3 +7,5 @@ export * from './likes';
 export * from './history';
 export * from './channels';
 export * from './home';
+export * from './melon';
+export * from './recommendations';

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { env } from '../lib/env.js';
 
 interface JwtPayload {
+  id: string;
   email: string;
   name: string;
 }

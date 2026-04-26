@@ -1,37 +1,22 @@
 import * as cheerio from 'cheerio';
+import type { MelonChartItem } from '@song/types';
 
-const CHART_URL = 'https://www.melon.com/chart/index.htm';
-const DESKTOP_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+export type MelonChartType = 'realtime' | 'hot100' | 'daily';
 
-interface MelonChartItem {
-  rank: number;
-  title: string;
-  artist: string;
-  album: string;
-  albumArt: string;
-}
+const CHART_URLS: Record<MelonChartType, string> = {
+  realtime: 'https://www.melon.com/chart/index.htm',
+  hot100: 'https://www.melon.com/chart/hot100/index.htm',
+  daily: 'https://www.melon.com/chart/day/index.htm',
+};
 
-let cachedChart: MelonChartItem[] | null = null;
-let cachedAt = 0;
+const DESKTOP_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
 const CACHE_TTL = 60 * 60 * 1000;
+const cache = new Map<MelonChartType, { data: MelonChartItem[]; at: number }>();
 
-export async function getMelonChart(): Promise<MelonChartItem[]> {
-  if (cachedChart && Date.now() - cachedAt < CACHE_TTL) {
-    return cachedChart;
-  }
-
-  const res = await fetch(CHART_URL, {
-    headers: {
-      'User-Agent': DESKTOP_UA,
-      'Accept-Language': 'ko-KR,ko;q=0.9',
-    },
-  });
-
-  if (!res.ok) throw new Error(`Melon fetch failed: ${res.status}`);
-
-  const html = await res.text();
+function parseChart(html: string): MelonChartItem[] {
   const $ = cheerio.load(html);
-
   const items: MelonChartItem[] = [];
 
   $('tr.lst50, tr.lst100').each((_, el) => {
@@ -56,9 +41,30 @@ export async function getMelonChart(): Promise<MelonChartItem[]> {
     }
   });
 
+  return items;
+}
+
+export async function getMelonChart(type: MelonChartType = 'realtime'): Promise<MelonChartItem[]> {
+  const cached = cache.get(type);
+  if (cached && Date.now() - cached.at < CACHE_TTL) {
+    return cached.data;
+  }
+
+  const url = CHART_URLS[type];
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': DESKTOP_UA,
+      'Accept-Language': 'ko-KR,ko;q=0.9',
+    },
+  });
+
+  if (!res.ok) throw new Error(`Melon fetch failed (${type}): ${res.status}`);
+
+  const html = await res.text();
+  const items = parseChart(html);
+
   if (items.length > 0) {
-    cachedChart = items;
-    cachedAt = Date.now();
+    cache.set(type, { data: items, at: Date.now() });
   }
 
   return items;

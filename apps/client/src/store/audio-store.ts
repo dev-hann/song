@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Audio } from '@/types';
 import { AudioStatus, RepeatMode } from '@/constants';
+import { audioPlayer } from '@/lib/audio-player';
 
 interface AudioPlayback {
   currentTime: number;
@@ -18,6 +19,7 @@ interface AudioStore {
   liked: boolean;
   queue: Audio[];
   currentIndex: number;
+  autoplay: boolean;
 
   setAudio: (audio: Audio) => void;
   setAudioById: (audioId: string) => Promise<void>;
@@ -31,6 +33,7 @@ interface AudioStore {
   toggleRepeatMode: () => void;
   toggleShuffle: () => void;
   toggleLike: () => void;
+  toggleAutoplay: () => void;
   playNext: () => void;
   playPrevious: () => void;
   setQueue: (tracks: Audio[], startIndex?: number) => void;
@@ -50,9 +53,11 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
   liked: false,
   queue: [],
   currentIndex: -1,
+  autoplay: true,
 
   setAudio: (audio: Audio) => {
     set({ audio, status: AudioStatus.LOADING });
+    audioPlayer.load(audio.id, audio);
   },
 
   setAudioById: async (audioId: string) => {
@@ -72,6 +77,7 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
         channel: data.channel || { name: '' },
       };
       set({ audio, status: AudioStatus.LOADING });
+      audioPlayer.load(audio.id, audio);
     } catch (error) {
       console.error('Error fetching audio info:', error);
       set({ status: AudioStatus.ERROR });
@@ -86,10 +92,14 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
 
   setStatus: (status) => set({ status }),
 
-  togglePlay: () => set((state) => {
-    if (state.status !== AudioStatus.PLAYING && state.status !== AudioStatus.PAUSED) return {};
-    return { status: state.status === AudioStatus.PLAYING ? AudioStatus.PAUSED : AudioStatus.PLAYING };
-  }),
+  togglePlay: () => {
+    const { status } = get();
+    if (status === AudioStatus.PLAYING) {
+      audioPlayer.pause();
+    } else if (status === AudioStatus.PAUSED) {
+      audioPlayer.play();
+    }
+  },
 
   setShowFullPlayer: (show) => set({ showFullPlayer: show }),
 
@@ -108,15 +118,45 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
   toggleRepeatMode: () => set((state) => {
     const modes = [RepeatMode.OFF, RepeatMode.ALL, RepeatMode.ONE];
     const idx = modes.indexOf(state.repeatMode);
-    return { repeatMode: modes[(idx + 1) % modes.length] };
+    const next = modes[(idx + 1) % modes.length];
+    audioPlayer.setRepeatMode(next);
+    return { repeatMode: next };
   }),
 
   toggleShuffle: () => set((state) => ({ shuffle: !state.shuffle })),
 
-  toggleLike: () => set((state) => ({ liked: !state.liked })),
+  toggleLike: () => {
+    const state = get();
+    if (!state.audio) return;
+    const newLiked = !state.liked;
+    set({ liked: newLiked });
+
+    (async () => {
+      try {
+        const { addLike, removeLike } = await import('@/services/api');
+        const audio = state.audio!;
+        const track = {
+          video_id: audio.id,
+          title: audio.title,
+          channel: audio.channel?.name || '',
+          thumbnail: audio.thumbnail,
+          duration: audio.duration,
+        };
+        if (newLiked) {
+          await addLike(track);
+        } else {
+          await removeLike(audio.id);
+        }
+      } catch {
+        set({ liked: !newLiked });
+      }
+    })();
+  },
+
+  toggleAutoplay: () => set((state) => ({ autoplay: !state.autoplay })),
 
   playNext: () => {
-    const { queue, currentIndex, repeatMode, shuffle } = get();
+    const { queue, currentIndex, repeatMode, shuffle, autoplay, audio } = get();
     if (queue.length === 0) return;
 
     let nextIndex: number;
@@ -126,17 +166,51 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
       nextIndex = currentIndex + 1;
       if (nextIndex >= queue.length) {
         if (repeatMode === RepeatMode.ALL) nextIndex = 0;
-        else return;
+        else {
+          if (autoplay && audio) {
+            (async () => {
+              try {
+                const { fetchRelatedTracks } = await import('@/services/api');
+                const related = await fetchRelatedTracks(audio.id);
+                if (related.results.length > 0) {
+                  const tracks = related.results.map((r) => ({
+                    id: r.id,
+                    type: 'video' as const,
+                    title: r.title,
+                    description: '',
+                    duration: r.duration,
+                    viewCount: 0,
+                    thumbnail: r.thumbnail,
+                    channel: { name: r.channel.name, thumbnail: r.channel.thumbnail },
+                  }));
+                  set({
+                    queue: tracks,
+                    currentIndex: 0,
+                    audio: tracks[0],
+                    status: AudioStatus.LOADING,
+                  });
+                  audioPlayer.load(tracks[0].id, tracks[0]);
+                }
+              } catch (error) {
+                console.error('Autoplay error:', error);
+              }
+            })();
+          }
+          return;
+        }
       }
     }
 
-    set({ currentIndex: nextIndex, audio: queue[nextIndex], status: AudioStatus.LOADING });
+    const next = queue[nextIndex];
+    set({ currentIndex: nextIndex, audio: next, status: AudioStatus.LOADING });
+    audioPlayer.load(next.id, next);
   },
 
   playPrevious: () => {
     const { queue, currentIndex, playback, repeatMode, shuffle } = get();
     if (playback.currentTime > 3) {
       set((state) => ({ playback: { ...state.playback, currentTime: 0 } }));
+      audioPlayer.seek(0);
       return;
     }
 
@@ -153,18 +227,22 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
       }
     }
 
-    set({ currentIndex: prevIndex, audio: queue[prevIndex], status: AudioStatus.LOADING });
+    const prev = queue[prevIndex];
+    set({ currentIndex: prevIndex, audio: prev, status: AudioStatus.LOADING });
+    audioPlayer.load(prev.id, prev);
   },
 
   setQueue: (tracks, startIndex = 0) => {
     if (tracks.length === 0) return;
     const idx = Math.min(startIndex, tracks.length - 1);
+    const track = tracks[idx];
     set({
       queue: tracks,
       currentIndex: idx,
-      audio: tracks[idx],
+      audio: track,
       status: AudioStatus.LOADING,
     });
+    audioPlayer.load(track.id, track);
   },
 
   addToQueue: (audio) => set((state) => ({

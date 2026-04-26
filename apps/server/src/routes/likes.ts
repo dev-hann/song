@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authMiddleware } from '../middleware/auth.js';
 import {
   getAllLikes,
   addLike,
@@ -7,10 +8,11 @@ import {
 } from '../models/like.js';
 
 const router = Router();
+router.use(authMiddleware);
 
-router.get('/', (_req, res) => {
+router.get('/', (req, res) => {
   try {
-    const likes = getAllLikes();
+    const likes = getAllLikes(req.user!.id);
     res.json(likes);
   } catch (error) {
     console.error('[Likes] Error:', error);
@@ -27,7 +29,7 @@ router.post('/', (req, res) => {
   }
 
   try {
-    const like = addLike({
+    const like = addLike(req.user!.id, {
       video_id,
       title,
       channel: channel || '',
@@ -43,7 +45,7 @@ router.post('/', (req, res) => {
 
 router.delete('/:videoId', (req, res) => {
   try {
-    const removed = removeLike(req.params.videoId);
+    const removed = removeLike(req.user!.id, req.params.videoId);
     if (!removed) {
       res.status(404).json({ error: 'Like not found' });
       return;
@@ -57,7 +59,7 @@ router.delete('/:videoId', (req, res) => {
 
 router.get('/check/:videoId', (req, res) => {
   try {
-    const liked = isLiked(req.params.videoId);
+    const liked = isLiked(req.user!.id, req.params.videoId);
     res.json({ video_id: req.params.videoId, liked });
   } catch (error) {
     console.error('[Likes] Check Error:', error);

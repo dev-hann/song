@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import { corsMiddleware } from './middleware/cors.js';
 import { rateLimiter } from './middleware/rate-limit.js';
@@ -15,6 +16,9 @@ import historyRouter from './routes/history.js';
 import channelsRouter from './routes/channels.js';
 import homeRouter from './routes/home.js';
 import melonRouter from './routes/melon.js';
+import recommendationsRouter from './routes/recommendations.js';
+import errorsRouter from './routes/errors.js';
+import authRouter from './routes/auth.js';
 
 getDb();
 
@@ -22,9 +26,11 @@ const app = express();
 
 app.use(corsMiddleware);
 app.use(express.json());
+app.use(cookieParser());
 app.use(loggerMiddleware);
 app.use(rateLimiter);
 
+app.use('/api/auth', authRouter);
 app.use('/api/youtube', youtubeRouter);
 app.use('/api/playlists', playlistsRouter);
 app.use('/api/likes', likesRouter);
@@ -32,6 +38,8 @@ app.use('/api/history', historyRouter);
 app.use('/api/channels', channelsRouter);
 app.use('/api/home', homeRouter);
 app.use('/api/melon', melonRouter);
+app.use('/api/recommendations', recommendationsRouter);
+app.use('/api/errors', errorsRouter);
 app.use('/health', healthRouter);
 
 const clientPath = env.CLIENT_DIST_PATH;

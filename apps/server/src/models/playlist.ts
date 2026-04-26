@@ -15,6 +15,7 @@ export const PlaylistTrackSchema = z.object({
 
 export const PlaylistSchema = z.object({
   id: z.string(),
+  user_id: z.string(),
   name: z.string(),
   description: z.string(),
   cover_image: z.string(),
@@ -28,24 +29,25 @@ export const PlaylistSchema = z.object({
 export type Playlist = PlaylistType;
 export type PlaylistTrack = PlaylistTrackType;
 
-export function getAllPlaylists(): Playlist[] {
+export function getAllPlaylists(userId: string): Playlist[] {
   const db = getDb();
   return db
     .prepare(
       `SELECT p.*, COUNT(pt.id) as track_count
        FROM playlists p
        LEFT JOIN playlist_tracks pt ON p.id = pt.playlist_id
+       WHERE p.user_id = ?
        GROUP BY p.id
        ORDER BY p.is_system DESC, p.updated_at DESC`,
     )
-    .all() as Playlist[];
+    .all(userId) as Playlist[];
 }
 
-export function getPlaylistById(id: string): Playlist | null {
+export function getPlaylistById(userId: string, id: string): Playlist | null {
   const db = getDb();
   const playlist = db
-    .prepare('SELECT * FROM playlists WHERE id = ?')
-    .get(id) as Playlist | undefined;
+    .prepare('SELECT * FROM playlists WHERE id = ? AND user_id = ?')
+    .get(id, userId) as Playlist | undefined;
   if (!playlist) return null;
 
   const tracks = db
@@ -57,23 +59,41 @@ export function getPlaylistById(id: string): Playlist | null {
   return { ...playlist, tracks, track_count: tracks.length };
 }
 
-export function createPlaylist(name: string, description = ''): Playlist {
+export function createPlaylist(userId: string, name: string, description = ''): Playlist {
   const db = getDb();
   const id = `pl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   db.prepare(
-    'INSERT INTO playlists (id, name, description) VALUES (?, ?, ?)',
-  ).run(id, name, description);
-  return getPlaylistById(id)!;
+    'INSERT INTO playlists (id, user_id, name, description) VALUES (?, ?, ?, ?)',
+  ).run(id, userId, name, description);
+  return getPlaylistById(userId, id)!;
+}
+
+export function getOrCreateLikedPlaylist(userId: string): Playlist {
+  const db = getDb();
+  let playlist = db
+    .prepare("SELECT * FROM playlists WHERE user_id = ? AND is_system = 1 AND name = '좋아요한 곡'")
+    .get(userId) as Playlist | undefined;
+
+  if (!playlist) {
+    const id = `liked_${userId}`;
+    db.prepare(
+      "INSERT INTO playlists (id, user_id, name, description, is_system) VALUES (?, ?, '좋아요한 곡', '', 1)",
+    ).run(id, userId);
+    playlist = getPlaylistById(userId, id)!;
+  }
+
+  return playlist;
 }
 
 export function updatePlaylist(
+  userId: string,
   id: string,
   data: { name?: string; description?: string },
 ): Playlist | null {
   const db = getDb();
   const existing = db
-    .prepare('SELECT * FROM playlists WHERE id = ?')
-    .get(id);
+    .prepare('SELECT * FROM playlists WHERE id = ? AND user_id = ?')
+    .get(id, userId);
   if (!existing) return null;
 
   if (data.name) {
@@ -87,14 +107,14 @@ export function updatePlaylist(
     ).run(data.description, id);
   }
 
-  return getPlaylistById(id);
+  return getPlaylistById(userId, id);
 }
 
-export function deletePlaylist(id: string): boolean {
+export function deletePlaylist(userId: string, id: string): boolean {
   const db = getDb();
   const playlist = db
-    .prepare('SELECT * FROM playlists WHERE id = ?')
-    .get(id) as Playlist | undefined;
+    .prepare('SELECT * FROM playlists WHERE id = ? AND user_id = ?')
+    .get(id, userId) as Playlist | undefined;
   if (!playlist || playlist.is_system) return false;
 
   db.prepare('DELETE FROM playlist_tracks WHERE playlist_id = ?').run(id);
@@ -103,6 +123,7 @@ export function deletePlaylist(id: string): boolean {
 }
 
 export function addTrackToPlaylist(
+  userId: string,
   playlistId: string,
   track: {
     video_id: string;
@@ -114,8 +135,8 @@ export function addTrackToPlaylist(
 ): PlaylistTrack | null {
   const db = getDb();
   const playlist = db
-    .prepare('SELECT * FROM playlists WHERE id = ?')
-    .get(playlistId);
+    .prepare('SELECT * FROM playlists WHERE id = ? AND user_id = ?')
+    .get(playlistId, userId);
   if (!playlist) return null;
 
   const existing = db
@@ -158,10 +179,16 @@ export function addTrackToPlaylist(
 }
 
 export function removeTrackFromPlaylist(
+  userId: string,
   playlistId: string,
   videoId: string,
 ): boolean {
   const db = getDb();
+  const playlist = db
+    .prepare('SELECT * FROM playlists WHERE id = ? AND user_id = ?')
+    .get(playlistId, userId);
+  if (!playlist) return false;
+
   const result = db
     .prepare(
       'DELETE FROM playlist_tracks WHERE playlist_id = ? AND video_id = ?',
@@ -176,10 +203,16 @@ export function removeTrackFromPlaylist(
 }
 
 export function reorderPlaylistTracks(
+  userId: string,
   playlistId: string,
   trackIds: number[],
 ): boolean {
   const db = getDb();
+  const playlist = db
+    .prepare('SELECT * FROM playlists WHERE id = ? AND user_id = ?')
+    .get(playlistId, userId);
+  if (!playlist) return false;
+
   const update = db.prepare(
     'UPDATE playlist_tracks SET sort_order = ? WHERE id = ? AND playlist_id = ?',
   );

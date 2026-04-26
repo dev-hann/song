@@ -3,6 +3,7 @@ import type { FollowedChannel as FollowedChannelType } from '@song/types';
 import { getDb } from '../lib/db.js';
 
 export const FollowedChannelSchema = z.object({
+  user_id: z.string(),
   channel_id: z.string(),
   channel_name: z.string(),
   channel_thumbnail: z.string(),
@@ -12,14 +13,14 @@ export const FollowedChannelSchema = z.object({
 
 export type FollowedChannel = FollowedChannelType;
 
-export function getFollowedChannels(): FollowedChannel[] {
+export function getFollowedChannels(userId: string): FollowedChannel[] {
   const db = getDb();
   return db
-    .prepare('SELECT * FROM followed_channels ORDER BY followed_at DESC')
-    .all() as FollowedChannel[];
+    .prepare('SELECT * FROM followed_channels WHERE user_id = ? ORDER BY followed_at DESC')
+    .all(userId) as FollowedChannel[];
 }
 
-export function followChannel(channel: {
+export function followChannel(userId: string, channel: {
   channel_id: string;
   channel_name: string;
   channel_thumbnail: string;
@@ -27,9 +28,10 @@ export function followChannel(channel: {
 }): FollowedChannel {
   const db = getDb();
   db.prepare(
-    `INSERT OR REPLACE INTO followed_channels (channel_id, channel_name, channel_thumbnail, subscriber_count, followed_at)
-     VALUES (?, ?, ?, ?, datetime('now'))`,
+    `INSERT OR REPLACE INTO followed_channels (user_id, channel_id, channel_name, channel_thumbnail, subscriber_count, followed_at)
+     VALUES (?, ?, ?, ?, ?, datetime('now'))`,
   ).run(
+    userId,
     channel.channel_id,
     channel.channel_name,
     channel.channel_thumbnail,
@@ -37,22 +39,22 @@ export function followChannel(channel: {
   );
 
   return db
-    .prepare('SELECT * FROM followed_channels WHERE channel_id = ?')
-    .get(channel.channel_id) as FollowedChannel;
+    .prepare('SELECT * FROM followed_channels WHERE user_id = ? AND channel_id = ?')
+    .get(userId, channel.channel_id) as FollowedChannel;
 }
 
-export function unfollowChannel(channelId: string): boolean {
+export function unfollowChannel(userId: string, channelId: string): boolean {
   const db = getDb();
   const result = db
-    .prepare('DELETE FROM followed_channels WHERE channel_id = ?')
-    .run(channelId);
+    .prepare('DELETE FROM followed_channels WHERE user_id = ? AND channel_id = ?')
+    .run(userId, channelId);
   return result.changes > 0;
 }
 
-export function isFollowing(channelId: string): boolean {
+export function isFollowing(userId: string, channelId: string): boolean {
   const db = getDb();
   const row = db
-    .prepare('SELECT channel_id FROM followed_channels WHERE channel_id = ?')
-    .get(channelId);
+    .prepare('SELECT channel_id FROM followed_channels WHERE user_id = ? AND channel_id = ?')
+    .get(userId, channelId);
   return !!row;
 }

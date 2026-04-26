@@ -1,8 +1,10 @@
 import { Router } from 'express';
+import { authMiddleware } from '../middleware/auth.js';
 import {
   getAllPlaylists,
   getPlaylistById,
   createPlaylist,
+  getOrCreateLikedPlaylist,
   updatePlaylist,
   deletePlaylist,
   addTrackToPlaylist,
@@ -12,11 +14,14 @@ import {
 import { getLikedVideoIds } from '../models/like.js';
 
 const router = Router();
+router.use(authMiddleware);
 
-router.get('/', (_req, res) => {
+router.get('/', (req, res) => {
   try {
-    const playlists = getAllPlaylists();
-    res.json(playlists);
+    const playlists = getAllPlaylists(req.user!.id);
+    const likedPlaylist = getOrCreateLikedPlaylist(req.user!.id);
+    const allPlaylists = [likedPlaylist, ...playlists.filter(p => p.id !== likedPlaylist.id)];
+    res.json(allPlaylists);
   } catch (error) {
     console.error('[Playlists] Error:', error);
     res.status(500).json({ error: 'Failed to fetch playlists' });
@@ -31,7 +36,7 @@ router.post('/', (req, res) => {
   }
 
   try {
-    const playlist = createPlaylist(name.trim(), (description || '').trim());
+    const playlist = createPlaylist(req.user!.id, name.trim(), (description || '').trim());
     res.status(201).json(playlist);
   } catch (error) {
     console.error('[Playlists] Create Error:', error);
@@ -41,14 +46,14 @@ router.post('/', (req, res) => {
 
 router.get('/:id', (req, res) => {
   try {
-    const playlist = getPlaylistById(req.params.id);
+    const playlist = getPlaylistById(req.user!.id, req.params.id);
     if (!playlist) {
       res.status(404).json({ error: 'Playlist not found' });
       return;
     }
 
-    if (playlist.id === 'liked') {
-      const likedIds = getLikedVideoIds();
+    if (playlist.is_system) {
+      const likedIds = getLikedVideoIds(req.user!.id);
       res.json({ ...playlist, track_count: likedIds.length });
       return;
     }
@@ -64,7 +69,7 @@ router.patch('/:id', (req, res) => {
   const { name, description } = req.body;
 
   try {
-    const playlist = updatePlaylist(req.params.id, { name, description });
+    const playlist = updatePlaylist(req.user!.id, req.params.id, { name, description });
     if (!playlist) {
       res.status(404).json({ error: 'Playlist not found' });
       return;
@@ -78,7 +83,7 @@ router.patch('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   try {
-    const deleted = deletePlaylist(req.params.id);
+    const deleted = deletePlaylist(req.user!.id, req.params.id);
     if (!deleted) {
       res.status(404).json({ error: 'Playlist not found or is system playlist' });
       return;
@@ -99,7 +104,7 @@ router.post('/:id/tracks', (req, res) => {
   }
 
   try {
-    const track = addTrackToPlaylist(req.params.id, {
+    const track = addTrackToPlaylist(req.user!.id, req.params.id, {
       video_id,
       title,
       channel: channel || '',
@@ -119,7 +124,7 @@ router.post('/:id/tracks', (req, res) => {
 
 router.delete('/:id/tracks/:videoId', (req, res) => {
   try {
-    const removed = removeTrackFromPlaylist(req.params.id, req.params.videoId);
+    const removed = removeTrackFromPlaylist(req.user!.id, req.params.id, req.params.videoId);
     if (!removed) {
       res.status(404).json({ error: 'Track not found in playlist' });
       return;
@@ -139,8 +144,8 @@ router.put('/:id/reorder', (req, res) => {
   }
 
   try {
-    reorderPlaylistTracks(req.params.id, trackIds);
-    const playlist = getPlaylistById(req.params.id);
+    reorderPlaylistTracks(req.user!.id, req.params.id, trackIds);
+    const playlist = getPlaylistById(req.user!.id, req.params.id);
     res.json(playlist);
   } catch (error) {
     console.error('[Playlists] Reorder Error:', error);

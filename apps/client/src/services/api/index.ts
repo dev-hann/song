@@ -5,3 +5,6 @@ export { fetchLikes, addLike, removeLike, checkLike } from './likes';
 export { fetchHistory, addToHistory, clearHistory } from './history';
 export { fetchChannel, fetchFollowedChannels, followChannel, unfollowChannel } from './channels';
 export { fetchHomeData } from './home';
+export { fetchMelonChart, type MelonChartType } from './melon';
+export { fetchRelatedTracks, fetchPersonalizedRecommendations } from './recommendations';
+export { verifyCredential } from './auth';

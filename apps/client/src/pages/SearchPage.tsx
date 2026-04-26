@@ -13,17 +13,6 @@ import { AddToPlaylistSheet } from '@/components/ui/add-to-playlist-sheet';
 import { useLikeCheck } from '@/queries';
 import { SearchStatus } from '@/constants';
 
-const genres = [
-  { label: 'K-Pop', query: 'K-Pop 2025', gradient: 'from-pink-600/60 to-pink-900/40' },
-  { label: '발라드', query: '한국 발라드', gradient: 'from-blue-600/60 to-blue-900/40' },
-  { label: '힙합', query: '한국 힙합', gradient: 'from-purple-600/60 to-purple-900/40' },
-  { label: 'R&B', query: 'K-R&B', gradient: 'from-orange-600/60 to-orange-900/40' },
-  { label: '인디', query: '한국 인디 음악', gradient: 'from-green-600/60 to-green-900/40' },
-  { label: '록', query: '한국 록', gradient: 'from-red-600/60 to-red-900/40' },
-  { label: '재즈', query: '재즈 음악', gradient: 'from-yellow-600/60 to-yellow-900/40' },
-  { label: '클래식', query: '클래식 음악', gradient: 'from-zinc-600/60 to-zinc-900/40' },
-];
-
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
@@ -199,25 +188,6 @@ export default function SearchPage() {
               </div>
             </section>
           )}
-
-          <section>
-            <h2 className="text-sm font-medium text-muted mb-3">모두 둘러보기</h2>
-            <div className="grid grid-cols-2 gap-2">
-              {genres.map((genre) => (
-                <button
-                  key={genre.label}
-                  onClick={() => {
-                    setQuery(genre.query);
-                    saveRecentSearch(genre.query);
-                    setShouldSearch(true);
-                  }}
-                  className={`relative overflow-hidden rounded-xl h-20 bg-gradient-to-br ${genre.gradient} active:scale-[0.98] transition-transform`}
-                >
-                  <span className="absolute bottom-3 left-3 text-sm font-bold text-white">{genre.label}</span>
-                </button>
-              ))}
-            </div>
-          </section>
         </>
       )}
 
