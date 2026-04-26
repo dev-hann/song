@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { getInnertube } from '../services/youtube.js';
 import { SearchParamsSchema } from '../schemas/api.js';
 import { SearchResponseSchema, toSearchResponse } from '../models/search.js';
@@ -11,6 +12,10 @@ import { getRelatedVideos } from '../services/recommendations.js';
 import { RelatedVideosResponseSchema } from '../models/related.js';
 
 const router = Router();
+
+const VideoIdSchema = z.object({
+  id: z.string().min(1, 'Video ID is required').max(20),
+});
 
 const streamCache = new Map<string, { url: string; expires: number }>();
 
@@ -40,14 +45,14 @@ router.get('/search', async (req, res) => {
 });
 
 router.get('/audio/info', async (req, res) => {
-  const id = req.query.id as string;
+  const paramsResult = VideoIdSchema.safeParse(req.query);
 
-  if (!id) {
-    res
-      .status(400)
-      .json({ error: 'Audio ID parameter "id" is required' });
+  if (!paramsResult.success) {
+    res.status(400).json({ error: paramsResult.error.issues[0].message });
     return;
   }
+
+  const { id } = paramsResult.data;
 
   try {
     const innertube = await getInnertube();
@@ -65,14 +70,14 @@ router.get('/audio/info', async (req, res) => {
 });
 
 router.get('/audio/stream', async (req, res) => {
-  const id = req.query.id as string;
+  const paramsResult = VideoIdSchema.safeParse(req.query);
 
-  if (!id) {
-    res
-      .status(400)
-      .json({ error: 'Audio ID parameter "id" is required' });
+  if (!paramsResult.success) {
+    res.status(400).json({ error: paramsResult.error.issues[0].message });
     return;
   }
+
+  const { id } = paramsResult.data;
 
   try {
     const innertube = await getInnertube();
@@ -99,12 +104,14 @@ router.get('/audio/stream', async (req, res) => {
 export default router;
 
 router.get('/audio/related', async (req, res) => {
-  const id = req.query.id as string;
+  const paramsResult = VideoIdSchema.safeParse(req.query);
 
-  if (!id) {
-    res.status(400).json({ error: 'Video ID parameter "id" is required' });
+  if (!paramsResult.success) {
+    res.status(400).json({ error: paramsResult.error.issues[0].message });
     return;
   }
+
+  const { id } = paramsResult.data;
 
   try {
     const related = await getRelatedVideos(id);

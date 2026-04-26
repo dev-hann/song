@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import {
   getAllLikes,
@@ -9,6 +10,14 @@ import {
 
 const router = Router();
 router.use(authMiddleware);
+
+const AddLikeSchema = z.object({
+  video_id: z.string().min(1).max(20),
+  title: z.string().min(1).max(500),
+  channel: z.string().max(200).default(''),
+  thumbnail: z.string().max(1000).default(''),
+  duration: z.number().int().min(0).default(0),
+});
 
 router.get('/', (req, res) => {
   try {
@@ -21,21 +30,14 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { video_id, title, channel, thumbnail, duration } = req.body;
-
-  if (!video_id || !title) {
-    res.status(400).json({ error: 'video_id and title are required' });
+  const result = AddLikeSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: result.error.issues[0].message });
     return;
   }
 
   try {
-    const like = addLike(req.user!.id, {
-      video_id,
-      title,
-      channel: channel || '',
-      thumbnail: thumbnail || '',
-      duration: duration || 0,
-    });
+    const like = addLike(req.user!.id, result.data);
     res.status(201).json(like);
   } catch (error) {
     console.error('[Likes] Add Error:', error);

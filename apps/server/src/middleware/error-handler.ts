@@ -14,10 +14,6 @@ export function errorHandler(
     route: `${req.method} ${req.path}`,
     method: req.method,
     userAgent: req.headers['user-agent'],
-    metadata: {
-      query: req.query,
-      body: req.body ? Object.keys(req.body) : [],
-    },
   }).catch((reportErr) => {
     console.error('[ErrorReporter] Failed to report:', reportErr);
   });

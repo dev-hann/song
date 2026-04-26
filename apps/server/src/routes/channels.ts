@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { getInnertube } from '../services/youtube.js';
 import { authMiddleware } from '../middleware/auth.js';
 import {
@@ -9,6 +10,12 @@ import {
 } from '../models/channel.js';
 
 const router = Router();
+
+const FollowChannelSchema = z.object({
+  channel_name: z.string().min(1).max(200),
+  channel_thumbnail: z.string().url().max(1000).optional(),
+  subscriber_count: z.string().max(50).optional(),
+});
 
 router.get('/followed', authMiddleware, (req, res) => {
   try {
@@ -78,19 +85,18 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/:id/follow', authMiddleware, (req, res) => {
-  const { channel_name, channel_thumbnail, subscriber_count } = req.body;
-
-  if (!channel_name) {
-    res.status(400).json({ error: 'channel_name is required' });
+  const result = FollowChannelSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: result.error.issues[0].message });
     return;
   }
 
   try {
     const channel = followChannel(req.user!.id, {
       channel_id: req.params.id as string,
-      channel_name,
-      channel_thumbnail: channel_thumbnail || '',
-      subscriber_count,
+      channel_name: result.data.channel_name,
+      channel_thumbnail: result.data.channel_thumbnail || '',
+      subscriber_count: result.data.subscriber_count,
     });
     res.status(201).json(channel);
   } catch (error) {

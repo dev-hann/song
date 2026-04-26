@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import crypto from 'crypto';
 import type { User as UserType } from '@song/types';
 import { getDb } from '../lib/db.js';
 
@@ -32,7 +33,7 @@ export function createUser(data: {
   picture?: string;
 }): User {
   const db = getDb();
-  const id = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const id = `usr_${crypto.randomUUID()}`;
 
   db.prepare(
     `INSERT INTO users (id, email, name, picture)

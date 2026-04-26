@@ -5,7 +5,7 @@ export function createRefreshToken(userId: string): string {
   const db = getDb();
   const token = crypto.randomBytes(64).toString('hex');
   const tokenHash = hashToken(token);
-  const id = `rt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const id = `rt_${crypto.randomUUID()}`;
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
   db.prepare(

@@ -15,12 +15,6 @@ export function getDb(): Database.Database {
   db.pragma('foreign_keys = ON');
 
   db.exec(`
-    DROP TABLE IF EXISTS playlists;
-    DROP TABLE IF EXISTS playlist_tracks;
-    DROP TABLE IF EXISTS likes;
-    DROP TABLE IF EXISTS play_history;
-    DROP TABLE IF EXISTS followed_channels;
-
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
@@ -31,7 +25,7 @@ export function getDb(): Database.Database {
       is_active INTEGER DEFAULT 1
     );
 
-    CREATE TABLE playlists (
+    CREATE TABLE IF NOT EXISTS playlists (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
@@ -43,7 +37,7 @@ export function getDb(): Database.Database {
       updated_at TEXT DEFAULT (datetime('now'))
     );
 
-    CREATE TABLE playlist_tracks (
+    CREATE TABLE IF NOT EXISTS playlist_tracks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
       video_id TEXT NOT NULL,
@@ -56,7 +50,7 @@ export function getDb(): Database.Database {
       UNIQUE(playlist_id, video_id)
     );
 
-    CREATE TABLE likes (
+    CREATE TABLE IF NOT EXISTS likes (
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       video_id TEXT NOT NULL,
       title TEXT NOT NULL,
@@ -67,7 +61,7 @@ export function getDb(): Database.Database {
       PRIMARY KEY (user_id, video_id)
     );
 
-    CREATE TABLE play_history (
+    CREATE TABLE IF NOT EXISTS play_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       video_id TEXT NOT NULL,
@@ -78,7 +72,7 @@ export function getDb(): Database.Database {
       played_at TEXT DEFAULT (datetime('now'))
     );
 
-    CREATE TABLE followed_channels (
+    CREATE TABLE IF NOT EXISTS followed_channels (
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       channel_id TEXT NOT NULL,
       channel_name TEXT NOT NULL,

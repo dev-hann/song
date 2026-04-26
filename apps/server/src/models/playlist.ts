@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import crypto from 'crypto';
 import type { Playlist as PlaylistType, PlaylistTrack as PlaylistTrackType } from '@song/types';
 import { getDb } from '../lib/db.js';
 
@@ -61,7 +62,7 @@ export function getPlaylistById(userId: string, id: string): Playlist | null {
 
 export function createPlaylist(userId: string, name: string, description = ''): Playlist {
   const db = getDb();
-  const id = `pl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const id = `pl_${crypto.randomUUID()}`;
   db.prepare(
     'INSERT INTO playlists (id, user_id, name, description) VALUES (?, ?, ?, ?)',
   ).run(id, userId, name, description);

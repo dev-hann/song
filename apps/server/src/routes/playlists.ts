@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import {
   getAllPlaylists,
@@ -16,6 +17,28 @@ import { getLikedVideoIds } from '../models/like.js';
 const router = Router();
 router.use(authMiddleware);
 
+const CreatePlaylistSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(1000).default(''),
+});
+
+const UpdatePlaylistSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(1000).optional(),
+});
+
+const AddTrackSchema = z.object({
+  video_id: z.string().min(1).max(20),
+  title: z.string().min(1).max(500),
+  channel: z.string().max(200).default(''),
+  thumbnail: z.string().max(1000).default(''),
+  duration: z.number().int().min(0).default(0),
+});
+
+const ReorderSchema = z.object({
+  trackIds: z.array(z.number().int().positive()).min(1),
+});
+
 router.get('/', (req, res) => {
   try {
     const playlists = getAllPlaylists(req.user!.id);
@@ -29,14 +52,14 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { name, description } = req.body;
-  if (!name || typeof name !== 'string' || !name.trim()) {
-    res.status(400).json({ error: 'Name is required' });
+  const result = CreatePlaylistSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: result.error.issues[0].message });
     return;
   }
 
   try {
-    const playlist = createPlaylist(req.user!.id, name.trim(), (description || '').trim());
+    const playlist = createPlaylist(req.user!.id, result.data.name, result.data.description);
     res.status(201).json(playlist);
   } catch (error) {
     console.error('[Playlists] Create Error:', error);
@@ -66,10 +89,14 @@ router.get('/:id', (req, res) => {
 });
 
 router.patch('/:id', (req, res) => {
-  const { name, description } = req.body;
+  const result = UpdatePlaylistSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: result.error.issues[0].message });
+    return;
+  }
 
   try {
-    const playlist = updatePlaylist(req.user!.id, req.params.id, { name, description });
+    const playlist = updatePlaylist(req.user!.id, req.params.id, result.data);
     if (!playlist) {
       res.status(404).json({ error: 'Playlist not found' });
       return;
@@ -96,21 +123,14 @@ router.delete('/:id', (req, res) => {
 });
 
 router.post('/:id/tracks', (req, res) => {
-  const { video_id, title, channel, thumbnail, duration } = req.body;
-
-  if (!video_id || !title) {
-    res.status(400).json({ error: 'video_id and title are required' });
+  const result = AddTrackSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: result.error.issues[0].message });
     return;
   }
 
   try {
-    const track = addTrackToPlaylist(req.user!.id, req.params.id, {
-      video_id,
-      title,
-      channel: channel || '',
-      thumbnail: thumbnail || '',
-      duration: duration || 0,
-    });
+    const track = addTrackToPlaylist(req.user!.id, req.params.id, result.data);
     if (!track) {
       res.status(409).json({ error: 'Track already in playlist or playlist not found' });
       return;
@@ -137,14 +157,14 @@ router.delete('/:id/tracks/:videoId', (req, res) => {
 });
 
 router.put('/:id/reorder', (req, res) => {
-  const { trackIds } = req.body;
-  if (!Array.isArray(trackIds)) {
-    res.status(400).json({ error: 'trackIds array is required' });
+  const result = ReorderSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: result.error.issues[0].message });
     return;
   }
 
   try {
-    reorderPlaylistTracks(req.user!.id, req.params.id, trackIds);
+    reorderPlaylistTracks(req.user!.id, req.params.id, result.data.trackIds);
     const playlist = getPlaylistById(req.user!.id, req.params.id);
     res.json(playlist);
   } catch (error) {

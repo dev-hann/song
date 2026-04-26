@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import path from 'path';
 import { corsMiddleware } from './middleware/cors.js';
 import { rateLimiter } from './middleware/rate-limit.js';
@@ -24,6 +25,7 @@ getDb();
 
 const app = express();
 
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(corsMiddleware);
 app.use(express.json());
 app.use(cookieParser());

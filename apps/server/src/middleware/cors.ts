@@ -1,11 +1,9 @@
 import cors from 'cors';
 import type { CorsOptions } from 'cors';
+import { env } from '../lib/env.js';
 
 const corsOptions: CorsOptions = {
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-  ],
+  origin: env.CORS_ORIGINS,
   credentials: true,
 };
 

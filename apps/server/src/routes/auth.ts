@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { env } from '../lib/env.js';
 import { findUserByEmail, findUserById, createUser, updateLastLogin } from '../models/user.js';
-import { createRefreshToken, validateRefreshToken, rotateRefreshToken } from '../models/refresh-token.js';
+import { createRefreshToken, validateRefreshToken, rotateRefreshToken, revokeAllRefreshTokens } from '../models/refresh-token.js';
 import { authRateLimiter } from '../middleware/rate-limit.js';
 
 const router = Router();
@@ -127,7 +127,15 @@ router.post('/refresh', authRateLimiter, async (req, res) => {
   }
 });
 
-router.post('/logout', (_req, res) => {
+router.post('/logout', (req, res) => {
+  const refreshToken = req.cookies?.refresh_token;
+  if (refreshToken) {
+    const validated = validateRefreshToken(refreshToken);
+    if (validated) {
+      const user = findUserById(validated.userId);
+      if (user) revokeAllRefreshTokens(user.id);
+    }
+  }
   res.clearCookie('refresh_token', { path: '/api/auth' });
   res.json({ success: true });
 });

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import {
   getRecentHistory,
@@ -9,10 +10,27 @@ import {
 const router = Router();
 router.use(authMiddleware);
 
+const HistoryQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(500).default(100),
+});
+
+const AddHistorySchema = z.object({
+  video_id: z.string().min(1).max(20),
+  title: z.string().min(1).max(500),
+  channel: z.string().max(200).default(''),
+  thumbnail: z.string().max(1000).default(''),
+  duration: z.number().int().min(0).default(0),
+});
+
 router.get('/', (req, res) => {
+  const paramsResult = HistoryQuerySchema.safeParse(req.query);
+  if (!paramsResult.success) {
+    res.status(400).json({ error: paramsResult.error.issues[0].message });
+    return;
+  }
+
   try {
-    const limit = parseInt(req.query.limit as string) || 100;
-    const history = getRecentHistory(req.user!.id, limit);
+    const history = getRecentHistory(req.user!.id, paramsResult.data.limit);
     res.json(history);
   } catch (error) {
     console.error('[History] Error:', error);
@@ -21,21 +39,14 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { video_id, title, channel, thumbnail, duration } = req.body;
-
-  if (!video_id || !title) {
-    res.status(400).json({ error: 'video_id and title are required' });
+  const result = AddHistorySchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: result.error.issues[0].message });
     return;
   }
 
   try {
-    addToHistory(req.user!.id, {
-      video_id,
-      title,
-      channel: channel || '',
-      thumbnail: thumbnail || '',
-      duration: duration || 0,
-    });
+    addToHistory(req.user!.id, result.data);
     res.status(201).json({ success: true });
   } catch (error) {
     console.error('[History] Add Error:', error);

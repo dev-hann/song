@@ -17,28 +17,29 @@ song/
 │   │   │   ├── store/        # Zustand stores
 │   │   │   ├── context/      # React contexts
 │   │   │   ├── lib/          # Utilities (api-client, formatters, utils)
-│   │   │   ├── types/        # Client-specific types (store, hooks)
+│   │   │   ├── types/        # Client-specific types (store)
 │   │   │   ├── constants/    # Re-exports from @song/types
 │   │   │   └── styles/       # Global styles
 │   │   ├── tests/            # Unit + component tests
 │   │   └── package.json
 │   └── server/       # Express + TypeScript (@song/server)
 │       └── src/
-│           ├── routes/   # Express routers
-│           ├── services/ # Business logic
-│           ├── models/   # Zod schemas + DB functions
-│           ├── schemas/  # API request/response Zod schemas
-│           ├── middleware/
-│           └── lib/      # Utilities (env, db, users)
+│           ├── routes/      # Express routers
+│           ├── services/    # Business logic (youtube, melon, recommendations, error-reporter, github-issues)
+│           ├── models/      # DB functions + Zod schemas
+│           ├── schemas/     # API request/response Zod schemas
+│           ├── middleware/   # auth, cors, rate-limit, logger, error-handler
+│           └── lib/         # Utilities (env, db)
 ├── packages/
 │   └── types/        # Shared types, enums, constants (@song/types)
 │       ├── src/
-│       │   ├── types/    # Audio, SearchResultAudio, Playlist, etc.
+│       │   ├── types/    # Audio, SearchResultAudio, Playlist, User, Recommendation, etc.
 │       │   └── constants/ # AudioStatus, SearchStatus, RepeatMode
 │       └── package.json
-├── turbo.json            # Turborepo pipeline config
-├── package.json          # Root workspace config
-└── tsconfig.json         # Base TypeScript config
+├── tests/              # E2E tests (Playwright)
+├── turbo.json          # Turborepo pipeline config
+├── package.json        # Root workspace config
+└── tsconfig.json       # Base TypeScript config
 ```
 
 ## Commands
@@ -75,7 +76,19 @@ song/
 - File naming: `kebab-case.ts` / `kebab-case.tsx`
 - No comments unless explicitly requested
 - Zod for runtime validation (server)
-- ESLint: eslint-config-next (core-web-vitals + typescript)
+- Helmet for security headers
+- crypto.randomUUID() for ID generation
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PORT` | No | Server port (default: 4000) |
+| `JWT_SECRET` | Yes | Secret for signing JWT tokens |
+| `GOOGLE_CLIENT_ID` | Yes | Google OAuth Client ID |
+| `GITHUB_TOKEN` | No | GitHub token for error reporting |
+| `GITHUB_REPO` | No | GitHub repo for error issues (default: dev-hann/song) |
+| `CORS_ORIGINS` | No | Comma-separated allowed origins (default: localhost) |
 
 ## Shared Models (Canonical) — `@song/types`
 
@@ -180,7 +193,55 @@ enum RepeatMode {
 ## API Specification
 
 Base path: `/api`
-Auth: `Authorization: Bearer <token>` (optional, required for protected routes)
+Auth: `Authorization: Bearer <token>` (required for protected routes, marked with 🔒)
+
+### `POST /api/auth/verify`
+
+Verify Google OAuth credential. Auto-creates user on first login.
+
+**Request Body:**
+
+```typescript
+{ credential: string }
+```
+
+**Response 200:**
+
+```typescript
+{ registered: true; token: string; user: { id: string; email: string; name: string; picture?: string } }
+```
+
+Sets `refresh_token` httpOnly cookie.
+
+**Response 400/401:** [`ErrorResponse`](#errorresponse)
+
+---
+
+### `POST /api/auth/refresh`
+
+Refresh access token using httpOnly cookie.
+
+**Response 200:**
+
+```typescript
+{ token: string }
+```
+
+**Response 401:** [`ErrorResponse`](#errorresponse)
+
+---
+
+### `POST /api/auth/logout`
+
+Clear refresh token cookie and revoke server-side tokens.
+
+**Response 200:**
+
+```typescript
+{ success: true }
+```
+
+---
 
 ### `GET /api/youtube/search`
 
@@ -231,46 +292,102 @@ Get audio stream URL.
 
 ---
 
-### `POST /api/auth/verify`
+### `GET /api/youtube/audio/related`
 
-Verify Google OAuth credential and login.
+Get related videos.
 
-**Request Body:**
+**Query Parameters:**
 
-```typescript
-{ credential: string }
-```
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Video ID |
 
-**Response 200:**
-
-```typescript
-// Existing user
-{ registered: true; token: string; user: { email: string; name: string; picture?: string } }
-// New user
-{ registered: false; email: string }
-```
-
-**Response 400/401:** [`ErrorResponse`](#errorresponse)
+**Response 200:** `{ videos: SearchResultAudio[] }`
 
 ---
 
-### `POST /api/auth/register`
+### `GET /api/youtube/audio/play/:id`
 
-Register new user with invite code.
+Proxy audio stream with retry logic.
 
-**Request Body:**
+**Response 200:** Audio stream (binary)
 
-```typescript
-{ credential: string; inviteCode: string }
-```
+---
+
+### `GET /api/home` 🔒
+
+Aggregated home page data (melon charts, recent history, likes, recommendations).
 
 **Response 200:**
 
 ```typescript
-{ registered: true; token: string; user: { email: string; name: string; picture?: string } }
+{ chart: Audio[]; hot100: Audio[]; dailyChart: Audio[]; recent: PlayHistory[]; likesCount: number; recommendations?: Recommendations }
 ```
 
-**Response 400/401/403:** [`ErrorResponse`](#errorresponse)
+---
+
+### `GET /api/melon/chart`
+
+Get Melon chart data.
+
+**Query Parameters:**
+
+| Param | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `type` | `'realtime' \| 'hot100' \| 'daily'` | No | `'realtime'` | Chart type |
+
+---
+
+### `GET /api/recommendations` 🔒
+
+Get personalized recommendations.
+
+**Response 200:** `{ fromChannels: Audio[]; fromRecent: Audio[] }`
+
+---
+
+### `GET /api/playlists` 🔒
+### `POST /api/playlists` 🔒
+### `GET /api/playlists/:id` 🔒
+### `PATCH /api/playlists/:id` 🔒
+### `DELETE /api/playlists/:id` 🔒
+### `POST /api/playlists/:id/tracks` 🔒
+### `DELETE /api/playlists/:id/tracks/:videoId` 🔒
+### `PUT /api/playlists/:id/reorder` 🔒
+
+Playlist CRUD operations. All require authentication.
+
+---
+
+### `GET /api/likes` 🔒
+### `POST /api/likes` 🔒
+### `DELETE /api/likes/:videoId` 🔒
+### `GET /api/likes/check/:videoId` 🔒
+
+Like management. All require authentication.
+
+---
+
+### `GET /api/history` 🔒
+### `POST /api/history` 🔒
+### `DELETE /api/history` 🔒
+
+Play history. All require authentication.
+
+---
+
+### `GET /api/channels/followed` 🔒
+### `GET /api/channels/:id`
+### `POST /api/channels/:id/follow` 🔒
+### `DELETE /api/channels/:id/follow` 🔒
+
+Channel follow management.
+
+---
+
+### `POST /api/errors` 🔒
+
+Client error reporting to GitHub Issues. Requires authentication.
 
 ---
 

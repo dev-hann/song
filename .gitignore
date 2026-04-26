@@ -27,6 +27,7 @@ apps/*/dist
 *.db
 *.db-shm
 *.db-wal
+apps/server/data/users.json
 
 # misc
 .DS_Store
