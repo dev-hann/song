@@ -2,11 +2,11 @@
 import { describe, it, expect } from 'vitest';
 import { parseGenreArtists } from '../provider';
 
-function makeChartHtml(artists: { name: string; art: string }[]): string {
+function makeGenreHtml(artists: { name: string; art: string }[]): string {
   const rows = artists
     .map(
       (a, i) => `
-    <tr class="lst50">
+    <tr>
       <td class="rank">${i + 1}</td>
       <td class="ellipsis rank02"><a>${a.name}</a></td>
       <td><img src="${a.art}" /></td>
@@ -18,7 +18,7 @@ function makeChartHtml(artists: { name: string; art: string }[]): string {
 
 describe('parseGenreArtists', () => {
   it('extracts unique artists sorted by frequency', () => {
-    const html = makeChartHtml([
+    const html = makeGenreHtml([
       { name: 'AKMU (악뮤)', art: 'https://cdnimg.melon.co.kr/cm2/album/images/133/12/398/13312398_500.jpg' },
       { name: 'AKMU (악뮤)', art: 'https://cdnimg.melon.co.kr/cm2/album/images/133/12/398/13312398_500.jpg' },
       { name: '아이유', art: 'https://cdnimg.melon.co.kr/cm2/album/images/114/04/142/11404142_500.jpg' },
@@ -38,7 +38,7 @@ describe('parseGenreArtists', () => {
       name: `Artist ${i + 1}`,
       art: 'https://example.com/art.jpg',
     }));
-    const html = makeChartHtml(artists);
+    const html = makeGenreHtml(artists);
 
     const result = parseGenreArtists(html);
 
@@ -46,7 +46,7 @@ describe('parseGenreArtists', () => {
   });
 
   it('filters out Various Artists', () => {
-    const html = makeChartHtml([
+    const html = makeGenreHtml([
       { name: 'AKMU (악뮤)', art: 'https://example.com/a.jpg' },
       { name: 'Various Artists', art: 'https://example.com/b.jpg' },
     ]);
@@ -58,7 +58,7 @@ describe('parseGenreArtists', () => {
   });
 
   it('optimizes album art URL', () => {
-    const html = makeChartHtml([
+    const html = makeGenreHtml([
       { name: '아이유', art: 'https://cdnimg.melon.co.kr/cm2/album/images/114/04/142/11404142_500.jpg' },
     ]);
 
@@ -75,11 +75,11 @@ describe('parseGenreArtists', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('handles lst100 class rows as well', () => {
+  it('handles rows without lst50/lst100 classes', () => {
     const html = `
       <table><tbody>
-        <tr class="lst100">
-          <td class="rank">51</td>
+        <tr>
+          <td class="rank">1</td>
           <td class="ellipsis rank02"><a>BTS</a></td>
           <td><img src="https://example.com/bts.jpg" /></td>
         </tr>

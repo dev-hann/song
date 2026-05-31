@@ -62,7 +62,9 @@ export function parseGenreArtists(html: string): OnboardingArtist[] {
   const $ = cheerio.load(html);
   const artistCounts = new Map<string, { count: number; albumArt: string }>();
 
-  $('tr.lst50, tr.lst100').each((_, el) => {
+  const rows = $('table tbody tr').filter((_, el) => $(el).find('.rank').length > 0);
+
+  rows.each((_, el) => {
     const artist = $(el).find('.ellipsis.rank02 a').first().text().trim();
     const albumArt = $(el).find('img').first().attr('src') ?? '';
 
@@ -92,7 +94,7 @@ async function getGenreArtists(gnrCode: string): Promise<OnboardingArtist[]> {
     return cached.data;
   }
 
-  const url = `https://www.melon.com/chart/index.htm?gnrCode=${gnrCode}`;
+  const url = `https://www.melon.com/genre/song_list.htm?gnrCode=${gnrCode}`;
   const res = await fetch(url, {
     headers: {
       'User-Agent': DESKTOP_UA,
