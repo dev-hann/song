@@ -36,7 +36,7 @@ describe('createSearchYouTube', () => {
     const result = await search('test query');
 
     expect(result).toEqual(searchResults);
-    expect(youtube.search).toHaveBeenCalledWith('test query');
+    expect(youtube.search).toHaveBeenCalledWith('test query official audio');
   });
 
   it('returns empty results', async () => {

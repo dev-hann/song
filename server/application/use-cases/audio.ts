@@ -2,7 +2,7 @@ import type { IYouTubeProvider } from '@/server/domain/ports/providers';
 import type { ExtendedAudio } from '@/types';
 
 export function createSearchYouTube(youtube: IYouTubeProvider) {
-  return (query: string) => youtube.search(query);
+  return (query: string) => youtube.search(`${query} official audio`);
 }
 
 export function createGetAudioInfo(youtube: IYouTubeProvider) {
