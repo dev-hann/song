@@ -40,12 +40,10 @@ export const youTubeProvider: IYouTubeProvider = {
 
   async searchTracks(query, limit): Promise<SearchResultAudio[]> {
     const result = await youTubeProvider.search(query);
-    const tracks: SearchResultAudio[] = [];
-    for (const item of result.results) {
-      if (tracks.length >= limit) {break;}
-      const mapped = toSearchResultAudio(item);
-      if (mapped) {tracks.push(mapped);}
-    }
-    return tracks;
+    return result.results
+      .filter((item): item is SearchResultAudio =>
+        typeof item === 'object' && item != null && 'id' in item && 'title' in item,
+      )
+      .slice(0, limit);
   },
 };
