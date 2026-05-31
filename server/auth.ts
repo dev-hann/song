@@ -63,7 +63,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
     async jwt({ token, user }) {
-      if (user.email) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (user?.email) {
         const dbUser = await userRepository.findByEmail(user.email);
         if (dbUser) {
           token.id = dbUser.id;
