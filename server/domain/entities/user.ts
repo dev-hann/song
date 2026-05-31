@@ -8,5 +8,4 @@ export const UserSchema = z.object({
   registeredAt: z.string(),
   lastLogin: z.string(),
   isActive: z.boolean().default(true),
-  onboardingCompleted: z.boolean().default(false),
 });

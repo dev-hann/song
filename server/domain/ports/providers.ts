@@ -1,5 +1,4 @@
 import type { SearchResultAudio, ExtendedAudio, ChannelInfo, MelonChartItem } from '@/types';
-import type { OnboardingArtist } from '@/types/onboarding';
 
 export interface AudioStreamResult {
   url: string;
@@ -20,5 +19,4 @@ export type MelonChartType = 'realtime' | 'hot100' | 'daily';
 
 export interface IMelonProvider {
   getChart(type: MelonChartType): Promise<MelonChartItem[]>;
-  getAllGenreArtists(): Promise<Array<{ id: string; name: string; artists: OnboardingArtist[] }>>;
 }

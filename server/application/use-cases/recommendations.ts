@@ -1,4 +1,4 @@
-import type { IYouTubeProvider } from '@/server/domain/ports/providers';
+import type { IYouTubeProvider, IMelonProvider } from '@/server/domain/ports/providers';
 import type { ILikeRepository, IHistoryRepository, IChannelRepository } from '@/server/domain/ports/repositories';
 import type { SearchResultAudio, PersonalizedRecommendationsResponse } from '@/types';
 
@@ -109,21 +109,71 @@ export function createGetRecommendationsFromRecent(
   };
 }
 
+export function createGetRecommendationsFromChart(
+  melon: IMelonProvider,
+  youtube: IYouTubeProvider,
+) {
+  return async (): Promise<SearchResultAudio[]> => {
+    const chart = await melon.getChart('realtime').catch(() => []);
+
+    const artistCounts = new Map<string, number>();
+    for (const item of chart) {
+      const name = item.artist;
+      if (!name) {continue;}
+      artistCounts.set(name, (artistCounts.get(name) ?? 0) + 1);
+    }
+
+    const topArtists = [...artistCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name]) => name);
+
+    const results: SearchResultAudio[] = [];
+    const seen = new Set<string>();
+
+    for (const artist of topArtists) {
+      if (results.length >= 5) {break;}
+      try {
+        const tracks = await youtube.searchTracks(artist, 2);
+        for (const track of tracks) {
+          if (results.length >= 5) {break;}
+          if (!seen.has(track.id)) {
+            seen.add(track.id);
+            results.push(track);
+          }
+        }
+      } catch {}
+    }
+
+    return results;
+  };
+}
+
 export function createGetPersonalizedRecommendations(
   likeRepo: ILikeRepository,
   historyRepo: IHistoryRepository,
   channelRepo: IChannelRepository,
   youtube: IYouTubeProvider,
+  melon: IMelonProvider,
 ) {
   return async (userId: string): Promise<PersonalizedRecommendationsResponse> => {
     const getFromChannels = createGetRecommendationsFromChannels(likeRepo, historyRepo, channelRepo, youtube);
     const getFromRecent = createGetRecommendationsFromRecent(likeRepo, historyRepo, youtube);
+    const getFromChart = createGetRecommendationsFromChart(melon, youtube);
 
-    const [fromChannels, fromRecent] = await Promise.all([
-      getFromChannels(userId).catch(() => []),
-      getFromRecent(userId).catch(() => []),
+    const [likes, history] = await Promise.all([
+      likeRepo.getAll(userId),
+      historyRepo.getRecent(userId, 1),
     ]);
 
-    return { fromChannels, fromRecent };
+    const hasUserData = likes.length > 0 || history.length > 0;
+
+    const [fromChannels, fromRecent, fromChart] = await Promise.all([
+      hasUserData ? getFromChannels(userId).catch(() => []) : Promise.resolve([]),
+      hasUserData ? getFromRecent(userId).catch(() => []) : Promise.resolve([]),
+      getFromChart().catch(() => []),
+    ]);
+
+    return { fromChannels, fromRecent, fromChart };
   };
 }

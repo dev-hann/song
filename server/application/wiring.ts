@@ -19,7 +19,6 @@ import {
 import { createGetFollowedChannels, createGetChannel, createFollowChannel, createUnfollowChannel } from './use-cases/channels';
 import { createSearchYouTube, createGetAudioInfo, createGetStreamUrl } from './use-cases/audio';
 import { createGetRelatedVideos, createGetPersonalizedRecommendations } from './use-cases/recommendations';
-import { createGetOnboardingStatus, createGetOnboardingGenres, createCompleteOnboarding } from './use-cases/onboarding';
 import { createGetHomeData } from './use-cases/home';
 
 export const useCases = {
@@ -68,12 +67,7 @@ export const useCases = {
   },
   recommendations: {
     getRelated: createGetRelatedVideos(youTubeProvider),
-    getPersonalized: createGetPersonalizedRecommendations(likeRepository, historyRepository, channelRepository, youTubeProvider),
-  },
-  onboarding: {
-    getStatus: createGetOnboardingStatus(userRepository),
-    getGenres: createGetOnboardingGenres(melonProvider),
-    complete: createCompleteOnboarding(likeRepository, channelRepository, youTubeProvider, userRepository),
+    getPersonalized: createGetPersonalizedRecommendations(likeRepository, historyRepository, channelRepository, youTubeProvider, melonProvider),
   },
   home: {
     get: createGetHomeData(melonProvider, historyRepository, likeRepository, channelRepository, youTubeProvider),

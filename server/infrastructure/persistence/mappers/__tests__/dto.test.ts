@@ -35,7 +35,6 @@ const userRow: UserRow = {
   registeredAt: '2025-01-01T00:00:00Z',
   lastLogin: '2025-06-01T12:00:00Z',
   isActive: true,
-  onboardingCompleted: false,
 };
 
 const likeRow: LikeRow = {
@@ -115,7 +114,6 @@ describe('toUserDTO', () => {
       registeredAt: '2025-01-01T00:00:00Z',
       lastLogin: '2025-06-01T12:00:00Z',
       isActive: true,
-      onboardingCompleted: false,
     });
   });
 

@@ -85,10 +85,6 @@ export const FollowChannelSchema = z.object({
   subscriberCount: z.string().max(50).optional(),
 });
 
-export const OnboardingSchema = z.object({
-  artistNames: z.array(z.string().min(1)).max(20),
-});
-
 export const ErrorReportSchema = z.object({
   message: z.string().min(1).max(2000),
   stack: z.string().max(5000).optional(),

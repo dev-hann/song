@@ -5,6 +5,7 @@ import type { SearchResultAudio } from './search';
 export interface HomeRecommendations {
   fromChannels: SearchResultAudio[];
   fromRecent: SearchResultAudio[];
+  fromChart: SearchResultAudio[];
 }
 
 export interface HomeResponse {

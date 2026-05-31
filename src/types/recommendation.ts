@@ -8,4 +8,5 @@ export interface RelatedVideosResponse {
 export interface PersonalizedRecommendationsResponse {
   fromChannels: SearchResultAudio[];
   fromRecent: SearchResultAudio[];
+  fromChart: SearchResultAudio[];
 }

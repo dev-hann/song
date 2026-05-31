@@ -49,5 +49,4 @@ export interface IUserRepository {
   findById(id: string): Promise<User | undefined>;
   create(data: { email: string; name: string; picture?: string }): Promise<User>;
   updateLastLogin(id: string): Promise<void>;
-  markOnboardingCompleted(id: string): Promise<void>;
 }

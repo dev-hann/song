@@ -47,6 +47,12 @@ function createMockYouTube() {
   };
 }
 
+function createMockMelon() {
+  return {
+    getChart: vi.fn(),
+  };
+}
+
 function makeSearchResult(id: string): SearchResultAudio {
   return { id, title: `Song ${id}`, thumbnail: '', duration: 200, channel: { name: 'Artist' } };
 }
@@ -369,27 +375,29 @@ describe('createGetPersonalizedRecommendations', () => {
     youtube.search.mockResolvedValue({ results: [makeSearchResult('ch1')] });
     youtube.getRelated.mockResolvedValue({ videoId: 'h1', results: [makeSearchResult('rec1')] });
 
-    const getRecs = createGetPersonalizedRecommendations(likeRepo, historyRepo, channelRepo, youtube);
+    const getRecs = createGetPersonalizedRecommendations(likeRepo, historyRepo, channelRepo, youtube, createMockMelon());
     const result = await getRecs('user1');
 
     expect(result.fromChannels).toBeDefined();
     expect(result.fromRecent).toBeDefined();
   });
 
-  it('returns empty arrays when both sources fail', async () => {
+  it('returns empty arrays when all sources fail', async () => {
     const likeRepo = createMockLikeRepo();
     const historyRepo = createMockHistoryRepo();
     const channelRepo = createMockChannelRepo();
     const youtube = createMockYouTube();
+    const melon = createMockMelon();
 
-    historyRepo.getRecent.mockRejectedValue(new Error('fail'));
-    likeRepo.getAll.mockRejectedValue(new Error('fail'));
-    channelRepo.getFollowed.mockRejectedValue(new Error('fail'));
+    historyRepo.getRecent.mockResolvedValue([]);
+    likeRepo.getAll.mockResolvedValue([]);
+    channelRepo.getFollowed.mockResolvedValue([]);
+    melon.getChart.mockRejectedValue(new Error('fail'));
 
-    const getRecs = createGetPersonalizedRecommendations(likeRepo, historyRepo, channelRepo, youtube);
+    const getRecs = createGetPersonalizedRecommendations(likeRepo, historyRepo, channelRepo, youtube, melon);
     const result = await getRecs('user1');
 
-    expect(result).toEqual({ fromChannels: [], fromRecent: [] });
+    expect(result).toEqual({ fromChannels: [], fromRecent: [], fromChart: [] });
   });
 
   it('handles partial failure gracefully', async () => {
@@ -402,10 +410,37 @@ describe('createGetPersonalizedRecommendations', () => {
     likeRepo.getAll.mockResolvedValue([]);
     channelRepo.getFollowed.mockResolvedValue([]);
 
-    const getRecs = createGetPersonalizedRecommendations(likeRepo, historyRepo, channelRepo, youtube);
+    const getRecs = createGetPersonalizedRecommendations(likeRepo, historyRepo, channelRepo, youtube, createMockMelon());
     const result = await getRecs('user1');
 
     expect(result.fromChannels).toEqual([]);
     expect(result.fromRecent).toEqual([]);
+    expect(result.fromChart).toBeDefined();
+  });
+
+  it('falls back to chart recommendations for cold-start users', async () => {
+    const likeRepo = createMockLikeRepo();
+    const historyRepo = createMockHistoryRepo();
+    const channelRepo = createMockChannelRepo();
+    const youtube = createMockYouTube();
+    const melon = createMockMelon();
+
+    historyRepo.getRecent.mockResolvedValue([]);
+    likeRepo.getAll.mockResolvedValue([]);
+    channelRepo.getFollowed.mockResolvedValue([]);
+
+    melon.getChart.mockResolvedValue([
+      { rank: 1, title: 'Song 1', artist: 'IU', album: 'A', albumArt: '' },
+      { rank: 2, title: 'Song 2', artist: 'BTS', album: 'B', albumArt: '' },
+      { rank: 3, title: 'Song 3', artist: 'IU', album: 'C', albumArt: '' },
+    ]);
+    youtube.searchTracks.mockResolvedValue([makeSearchResult('chart1')]);
+
+    const getRecs = createGetPersonalizedRecommendations(likeRepo, historyRepo, channelRepo, youtube, melon);
+    const result = await getRecs('user1');
+
+    expect(result.fromChannels).toEqual([]);
+    expect(result.fromRecent).toEqual([]);
+    expect(result.fromChart.length).toBeGreaterThan(0);
   });
 });

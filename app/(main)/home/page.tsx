@@ -177,12 +177,30 @@ export default function HomePage() {
         <h1 className="text-2xl font-bold text-foreground">듣기</h1>
       </div>
 
-      {recommendations && (recommendations.fromChannels.length > 0 || recommendations.fromRecent.length > 0) && (
+      {recommendations && (recommendations.fromChannels.length > 0 || recommendations.fromRecent.length > 0 || recommendations.fromChart.length > 0) && (
         <section className="mb-10">
           <div className="flex items-center gap-2 px-4 mb-4">
             <Sparkles size={16} className="text-foreground" />
             <h2 className="text-base font-bold text-foreground">맞춤 추천</h2>
           </div>
+
+          {recommendations.fromChart.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-1.5 px-4 mb-3">
+                <Music size={12} className="text-muted" />
+                <span className="text-xs text-muted font-medium">인기 아티스트의 음악</span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto hide-scrollbar px-4 -mx-4">
+                {recommendations.fromChart.map((track) => (
+                  <RecommendationItem
+                    key={track.id}
+                    track={track}
+                    onPlay={() => { openRecommendationContext(track); }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {recommendations.fromChannels.length > 0 && (
             <div className="mb-6">

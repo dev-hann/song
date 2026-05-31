@@ -11,7 +11,7 @@ export function createGetHomeData(
   youtube: IYouTubeProvider,
 ) {
   return async (userId: string): Promise<HomeResponse> => {
-    const getRecommendations = createGetPersonalizedRecommendations(likeRepo, historyRepo, channelRepo, youtube);
+    const getRecommendations = createGetPersonalizedRecommendations(likeRepo, historyRepo, channelRepo, youtube, melon);
 
     const [chart, hot100, dailyChart, recentHistory, likes, recommendations] = await Promise.all([
       melon.getChart('realtime').catch(() => []),
@@ -22,8 +22,11 @@ export function createGetHomeData(
       getRecommendations(userId).catch(() => ({
         fromChannels: [],
         fromRecent: [],
+        fromChart: [],
       })),
     ]);
+
+    const hasPersonalized = recommendations.fromChannels.length > 0 || recommendations.fromRecent.length > 0;
 
     return {
       chart: chart.slice(0, 5),
@@ -31,7 +34,7 @@ export function createGetHomeData(
       dailyChart: dailyChart.slice(0, 5),
       recent: recentHistory,
       likesCount: likes.length,
-      recommendations: recommendations.fromChannels.length > 0 || recommendations.fromRecent.length > 0
+      recommendations: hasPersonalized || recommendations.fromChart.length > 0
         ? recommendations
         : undefined,
     };

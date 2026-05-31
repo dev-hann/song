@@ -6,7 +6,6 @@ export interface User {
   registeredAt: string;
   lastLogin: string;
   isActive: boolean;
-  onboardingCompleted: boolean;
 }
 
 export interface AuthResponse {

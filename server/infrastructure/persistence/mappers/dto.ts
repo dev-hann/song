@@ -35,7 +35,6 @@ export function toUserDTO(row: UserRow): User {
     registeredAt: s(row.registeredAt),
     lastLogin: s(row.lastLogin),
     isActive: row.isActive,
-    onboardingCompleted: b(row.onboardingCompleted),
   });
 }
 

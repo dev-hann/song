@@ -9,6 +9,5 @@ export type * from './like';
 export type * from './melon';
 export type * from './recommendation';
 export type * from './home';
-export type * from './onboarding';
 export * from './enums';
 export type * from './store';

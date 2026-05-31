@@ -33,8 +33,4 @@ export const userRepository: IUserRepository = {
   async updateLastLogin(id): Promise<void> {
     await db.update(users).set({ lastLogin: new Date().toISOString().replace('T', ' ').slice(0, 19) }).where(eq(users.id, id));
   },
-
-  async markOnboardingCompleted(id): Promise<void> {
-    await db.update(users).set({ onboardingCompleted: true }).where(eq(users.id, id));
-  },
 };

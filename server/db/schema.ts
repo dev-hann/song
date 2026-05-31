@@ -9,7 +9,6 @@ export const users = pgTable('users', {
   registeredAt: text('registered_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   lastLogin: text('last_login').default(sql`CURRENT_TIMESTAMP`).notNull(),
   isActive: boolean('is_active').default(true).notNull(),
-  onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
 }, (table) => [
   index('idx_users_email').on(table.email),
 ]);
