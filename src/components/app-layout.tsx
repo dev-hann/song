@@ -17,9 +17,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [showQueue, setShowQueue] = useState(false);
 
   return (
-    <>
+    <div id="app">
       <div className="content">{children}</div>
       <PlayerBar />
+      <BottomNav />
       {audio && (
         <FullPlayer
           show={showFullPlayer}
@@ -28,7 +29,6 @@ export function AppLayout({ children }: AppLayoutProps) {
         />
       )}
       <QueueSheet open={showQueue} onOpenChange={setShowQueue} />
-      <BottomNav />
-    </>
+    </div>
   );
 }
