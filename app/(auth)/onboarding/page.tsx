@@ -74,7 +74,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background">
+    <div className="flex h-[100dvh] flex-col bg-background">
       <div className="flex-shrink-0 px-6 pt-[env(safe-area-inset-top)]">
         <div className="flex items-center justify-center gap-2 py-6">
           <div className={`h-2.5 w-2.5 rounded-full transition-colors ${step >= 1 ? 'bg-primary' : 'bg-muted'}`} />
