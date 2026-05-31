@@ -41,7 +41,7 @@ export function createGetRecommendationsFromChannels(
 
     const searchPromises = channelNames.map(async (channelName) => {
       try {
-        const searchResult = await youtube.search(channelName);
+        const searchResult = await youtube.search(`${channelName} official audio`);
         return searchResult.results
           .map((item: unknown) => {
             if (typeof item === 'object' && item != null && 'id' in item) {return item as SearchResultAudio;}
@@ -134,7 +134,7 @@ export function createGetRecommendationsFromChart(
     for (const artist of topArtists) {
       if (results.length >= 5) {break;}
       try {
-        const tracks = await youtube.searchTracks(artist, 2);
+        const tracks = await youtube.searchTracks(`${artist} official audio`, 2);
         for (const track of tracks) {
           if (results.length >= 5) {break;}
           if (!seen.has(track.id)) {

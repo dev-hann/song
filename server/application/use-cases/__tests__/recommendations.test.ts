@@ -442,5 +442,6 @@ describe('createGetPersonalizedRecommendations', () => {
     expect(result.fromChannels).toEqual([]);
     expect(result.fromRecent).toEqual([]);
     expect(result.fromChart.length).toBeGreaterThan(0);
+    expect(youtube.searchTracks).toHaveBeenCalledWith('IU official audio', 2);
   });
 });
