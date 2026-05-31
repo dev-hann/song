@@ -4,177 +4,120 @@ A mobile-first Progressive Web App that lets you search YouTube and play audio w
 
 ## Features
 
-- 🎵 **YouTube Audio Streaming** - Play audio from YouTube videos without the video player
-- 🔍 **Search** - Search YouTube for music, podcasts, and more
-- 📱 **Mobile-First PWA** - Designed for mobile devices with PWA capabilities
-- 🎵 **Queue Management** - Add tracks to queue and manage playback order
-- 🔁 **Playback Controls** - Play/pause, skip, shuffle, repeat modes
-- ⏩ **Speed Control** - Adjust playback speed (0.5x - 2x)
-- 👍 **Like & Save** - Mark your favorite tracks
-- 👆 **Swipe Gestures** - Swipe down on full player to close
-- 📐 **Responsive Design** - Works on mobile and desktop
-- 🎨 **Dark Theme** - Beautiful dark UI with Tailwind CSS
+- YouTube Audio Streaming — Play audio from YouTube videos
+- Search — Search YouTube for music, podcasts, and more
+- Mobile-First PWA — Designed for mobile devices with PWA capabilities
+- Queue Management — Add tracks to queue and manage playback order
+- Playback Controls — Play/pause, skip, shuffle, repeat modes
+- Speed Control — Adjust playback speed (0.5x - 2x)
+- Like & Save — Mark your favorite tracks
+- Swipe Gestures — Swipe down on full player to close
+- Melon Chart — Browse Korean music charts
+- Playlist Management — Create and manage playlists
+- Channel Follow — Follow YouTube channels
+- Dark Theme — Beautiful dark UI with Tailwind CSS
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Framework | **Next.js 16** (App Router) |
-| Language | **TypeScript 5** |
+| Framework | **Next.js 16** (App Router, standalone output) |
+| Language | **TypeScript 5** (strict mode) |
 | UI | **React 19** |
 | Styling | **Tailwind CSS v4** |
 | State Management | **Zustand v5** |
 | Server State | **TanStack Query v5** |
-| YouTube API | **youtubei.js v16** |
+| Auth | **Auth.js (next-auth v5)** — Google OAuth |
+| Database | **SQLite** (better-sqlite3) |
+| YouTube API | **youtubei.js** |
 | Validation | **Zod v4** |
-| Icons | **Lucide React** |
-| Testing | **Vitest**, **Playwright**, **MSW** |
+| Testing | **Vitest**, **React Testing Library**, **MSW** |
+| Deployment | **Docker** (standalone) |
 
 ## Project Structure
 
 ```
-src/
+song/
 ├── app/                    # Next.js App Router
-│   ├── api/
-│   │   └── youtube/       # API routes
-│   │       ├── audio/info/route.ts      # Audio metadata
-│   │       ├── audio/stream/route.ts    # Audio streaming URL
-│   │       └── search/route.ts          # YouTube search
-│   ├── home/page.tsx     # Home page
-│   ├── search/page.tsx    # Search page
-│   ├── library/page.tsx   # Library page
-│   └── layout.tsx         # Root layout with PWA metadata
-├── components/            # React components
-│   ├── app-layout.tsx     # Main app wrapper
-│   ├── audio-card.tsx     # Search result card
-│   ├── bottom-nav.tsx     # Navigation bar
-│   ├── full-player.tsx    # Full-screen player
-│   ├── library-section.tsx # Library content
-│   ├── player-bar.tsx     # Mini player bar
-│   ├── search-section.tsx # Search UI
-│   └── ui/                # UI primitives
-├── constants/             # Enums (AudioStatus, RepeatMode, etc.)
-├── hooks/                 # Custom React hooks
-├── lib/                   # Utilities (formatters, youtube singleton)
-├── models/                # Domain models with Zod schemas
-├── queries/               # TanStack Query hooks
-├── schemas/               # API request/response schemas
-├── services/              # API service functions
-├── store/                 # Zustand audio store
-└── types/                 # TypeScript types
+│   ├── (auth)/login/       # Login page
+│   ├── (main)/             # Authenticated pages
+│   ├── api/                # Route Handlers (22 endpoints)
+│   ├── layout.tsx
+│   └── not-found.tsx
+├── server/                 # Server-side business logic
+│   ├── auth.ts             # Auth.js config
+│   ├── lib/                # env.ts, db.ts
+│   ├── models/             # DB functions + Zod schemas
+│   ├── schemas/            # API request/response schemas
+│   ├── services/           # youtube, melon, recommendations
+│   └── utils/
+├── src/                    # Client-side code
+│   ├── components/         # UI components
+│   ├── hooks/              # Custom hooks
+│   ├── queries/            # TanStack Query keys + options
+│   ├── services/           # API call functions
+│   ├── store/              # Zustand stores
+│   ├── context/            # React contexts
+│   ├── lib/                # Utilities
+│   ├── types/              # TypeScript types + enums
+│   ├── constants/          # Re-exports from types/enums
+│   └── styles/
+├── public/                 # Static assets
+├── proxy.ts                # Auth middleware
+├── next.config.ts
+├── Dockerfile
+└── docker-compose.yml
 ```
-
-## API Endpoints
-
-### Search YouTube
-
-```
-GET /api/youtube/search?q={query}
-```
-
-**Parameters:**
-- `q` (required): Search query
-
-**Response:** List of audio items with metadata
-
-### Get Audio Info
-
-```
-GET /api/youtube/audio/info?id={videoId}
-```
-
-**Parameters:**
-- `id` (required): YouTube video ID
-
-**Response:** Extended audio metadata (duration, title, channel, thumbnail, etc.)
-
-### Get Audio Stream URL
-
-```
-GET /api/youtube/audio/stream?id={videoId}
-```
-
-**Parameters:**
-- `id` (required): YouTube video ID
-
-**Response:** Audio stream URL (audio-only)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ 
-- npm, yarn, or pnpm
+- Node.js 22+
+- npm
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/dev-hann/song.git
 cd song
-
-# Install dependencies
 npm install
+```
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and fill in:
+
+```env
+AUTH_SECRET=          # Generate: openssl rand -base64 32
+GOOGLE_CLIENT_ID=     # Google Cloud Console OAuth 2.0
+GOOGLE_CLIENT_SECRET= # Google Cloud Console OAuth 2.0
 ```
 
 ### Development
 
 ```bash
-# Start development server
-npm run dev
-
-# Open http://localhost:3000
+npm run dev            # http://localhost:3000
 ```
 
-### Build
+### Production (Docker)
 
 ```bash
-# Build for production
-npm run build
-
-# Start production server
-npm start
+docker compose up -d
 ```
 
-## Testing
+## Commands
 
-```bash
-# Run unit tests
-npm run test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run E2E tests
-npm run test:e2e
-
-# Run linter
-npm run lint
-
-# Type check
-npx tsc --noEmit
-```
-
-## Code Quality
-
-This project follows **OpenCode SKILLS** conventions for consistent code quality. See `.opencode/skills/` for detailed guidelines:
-
-- **code-standards.md** - Code formatting, comments, naming
-- **react-components.md** - Server/Client component patterns
-- **zod-validation.md** - Runtime validation patterns
-- **parser-patterns.md** - Parser function patterns
-- **api-route-development.md** - API route best practices
-- **typescript-verification.md** - Type safety patterns
-- **testing-infrastructure.md** - Testing setup
-- **component-testing.md** - Component testing with Testing Library
-- **api-testing.md** - API route testing
-
-## Browser Support
-
-- Chrome/Edge (latest)
-- Safari (latest)
-- Firefox (latest)
-- Mobile browsers (iOS Safari, Chrome Mobile)
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Dev server with Turbopack |
+| `npm run build` | Production build (standalone) |
+| `npm run start` | Start production server |
+| `npm run lint` | ESLint (strict, 100+ rules) |
+| `npm run typecheck` | TypeScript type checking |
+| `npm run test` | Vitest |
+| `npm run test:watch` | Vitest in watch mode |
+| `npm run test:coverage` | Vitest with coverage |
 
 ## License
 
@@ -182,13 +125,5 @@ MIT
 
 ## Disclaimer
 
-This project uses an unofficial YouTube API (youtubei.js). 
-
-- **NOT affiliated with YouTube or Google**
-- Verify YouTube's Terms of Service before commercial use
-- Excessive requests may be rate-limited
-- For personal/educational use only
-
----
-
-Built with ❤️ using Next.js, React, and Tailwind CSS
+This project uses an unofficial YouTube API (youtubei.js).
+NOT affiliated with YouTube or Google. For personal/educational use only.

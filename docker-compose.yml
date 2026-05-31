@@ -1,0 +1,42 @@
+services:
+  song:
+    build: .
+    ports:
+      - "3001:3000"
+    env_file:
+      - .env.docker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: song
+      POSTGRES_USER: song
+      POSTGRES_PASSWORD: songpassword
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U song"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --credentials-file /etc/cloudflared/d33c9d00-7f6d-4199-be4c-fd193d7322c3.json song
+    volumes:
+      - /home/hann/.cloudflared:/etc/cloudflared:ro
+    environment:
+      - TUNNEL_ORIGIN_CERT=/etc/cloudflared/cert.pem
+    restart: unless-stopped
+    depends_on:
+      - song
+
+volumes:
+  pg-data:

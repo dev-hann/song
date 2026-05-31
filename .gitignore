@@ -12,6 +12,7 @@ node_modules
 /coverage
 /playwright-report
 /test-results
+e2e/.auth/
 
 # next.js
 .next/
@@ -20,18 +21,19 @@ node_modules
 # production
 /build
 /dist
-packages/*/dist
-apps/*/dist
 
 # database
 *.db
 *.db-shm
 *.db-wal
-apps/server/data/users.json
 
 # misc
 .DS_Store
 *.pem
+.opencode/
+
+# data
+data/
 
 # debug
 npm-debug.log*
@@ -50,5 +52,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# turbo
-.turbo
+# serwist
+public/sw*
+public/swe-worker*

@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+*.md
+e2e/
+tests/
+coverage/
+playwright-report/
+test-results/
+.opencode/
+.env*
+!.env.example
+*.tsbuildinfo
+docker-compose.yml
+.vercel
