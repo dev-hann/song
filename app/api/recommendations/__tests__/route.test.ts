@@ -16,8 +16,10 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/services/recommendations', () => ({
-  getPersonalizedRecommendations: mockGetPersonalizedRecommendations,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    recommendations: { getPersonalized: mockGetPersonalizedRecommendations },
+  },
 }));
 
 import { GET } from '../route';

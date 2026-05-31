@@ -5,8 +5,9 @@ const { mockGetAudioStreamUrl } = vi.hoisted(() => ({
   mockGetAudioStreamUrl: vi.fn(),
 }));
 
-vi.mock('@/server/services/youtube', () => ({
+vi.mock('@/server/infrastructure/external/youtube/client', () => ({
   getAudioStreamUrl: mockGetAudioStreamUrl,
+  markMwebFailed: vi.fn(),
 }));
 
 import { GET } from '../route';

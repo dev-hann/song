@@ -1,9 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockGetInnertube, mockFromBasicInfo } = vi.hoisted(() => ({
-  mockGetInnertube: vi.fn(),
-  mockFromBasicInfo: vi.fn(),
+const { mockGetInfo } = vi.hoisted(() => ({
+  mockGetInfo: vi.fn(),
 }));
 
 vi.mock('next/server', () => ({
@@ -12,15 +11,13 @@ vi.mock('next/server', () => ({
   },
 }));
 
-vi.mock('@/server/services/youtube', () => ({
-  getInnertube: mockGetInnertube,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    audio: { getInfo: mockGetInfo },
+  },
 }));
 
-vi.mock('@/server/models/audio', () => ({
-  fromBasicInfo: mockFromBasicInfo,
-}));
-
-vi.mock('@/server/schemas/api', () => ({
+vi.mock('@/server/application/schemas/response', () => ({
   AudioInfoResponseSchema: { parse: (v: unknown) => v },
 }));
 
@@ -35,15 +32,13 @@ beforeEach(() => {
 describe('GET /api/youtube/audio/info', () => {
   it('returns audio info for valid video id', async () => {
     const info = { id: 'vid1', title: 'Test Video', duration: 200 };
-    const mockInnertube = { getBasicInfo: vi.fn().mockResolvedValue({ id: 'vid1' }) };
-    mockGetInnertube.mockResolvedValue(mockInnertube);
-    mockFromBasicInfo.mockReturnValue(info);
+    mockGetInfo.mockResolvedValue(info);
 
     const result = await GET(new Request('http://localhost/api/youtube/audio/info?id=vid1'));
 
     expect(result.status).toBe(200);
     expect(result.body).toEqual(info);
-    expect(mockFromBasicInfo).toHaveBeenCalledWith({ id: 'vid1' });
+    expect(mockGetInfo).toHaveBeenCalledWith('vid1');
   });
 
   it('returns 400 for missing id', async () => {
@@ -59,7 +54,7 @@ describe('GET /api/youtube/audio/info', () => {
   });
 
   it('returns 500 on youtube api error', async () => {
-    mockGetInnertube.mockRejectedValue(new Error('youtube down'));
+    mockGetInfo.mockRejectedValue(new Error('youtube down'));
 
     const result = (await GET(new Request('http://localhost/api/youtube/audio/info?id=vid1'))) as unknown as MockResponse;
 
@@ -68,7 +63,7 @@ describe('GET /api/youtube/audio/info', () => {
   });
 
   it('returns generic message for non-Error throws', async () => {
-    mockGetInnertube.mockRejectedValue(null);
+    mockGetInfo.mockRejectedValue(null);
 
     const result = (await GET(new Request('http://localhost/api/youtube/audio/info?id=vid1'))) as unknown as MockResponse;
 

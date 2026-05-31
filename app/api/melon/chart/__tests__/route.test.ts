@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockGetMelonChart } = vi.hoisted(() => ({
-  mockGetMelonChart: vi.fn(),
+const { mockGetChart } = vi.hoisted(() => ({
+  mockGetChart: vi.fn(),
 }));
 
 vi.mock('next/server', () => ({
@@ -11,8 +11,12 @@ vi.mock('next/server', () => ({
   },
 }));
 
-vi.mock('@/server/services/melon', () => ({
-  getMelonChart: mockGetMelonChart,
+vi.mock('@/server/application/wiring', () => ({
+  melonProvider: { getChart: mockGetChart },
+}));
+
+vi.mock('@/server/application/schemas/response', () => ({
+  MelonChartResponseSchema: { parse: (v: unknown) => v },
 }));
 
 import { GET } from '../route';
@@ -26,45 +30,45 @@ beforeEach(() => {
 describe('GET /api/melon/chart', () => {
   it('returns realtime chart by default', async () => {
     const chart = [{ rank: 1, title: 'Song 1' }];
-    mockGetMelonChart.mockResolvedValue(chart);
+    mockGetChart.mockResolvedValue(chart);
 
     const result = await GET(new Request('http://localhost/api/melon/chart'));
 
     expect(result.status).toBe(200);
     expect(result.body).toEqual(chart);
-    expect(mockGetMelonChart).toHaveBeenCalledWith('realtime');
+    expect(mockGetChart).toHaveBeenCalledWith('realtime');
   });
 
   it('returns hot100 chart when specified', async () => {
     const chart = [{ rank: 1, title: 'Hot Song' }];
-    mockGetMelonChart.mockResolvedValue(chart);
+    mockGetChart.mockResolvedValue(chart);
 
     const result = await GET(new Request('http://localhost/api/melon/chart?type=hot100'));
 
     expect(result.status).toBe(200);
-    expect(mockGetMelonChart).toHaveBeenCalledWith('hot100');
+    expect(mockGetChart).toHaveBeenCalledWith('hot100');
   });
 
   it('returns daily chart when specified', async () => {
-    mockGetMelonChart.mockResolvedValue([]);
+    mockGetChart.mockResolvedValue([]);
 
     const result = await GET(new Request('http://localhost/api/melon/chart?type=daily'));
 
     expect(result.status).toBe(200);
-    expect(mockGetMelonChart).toHaveBeenCalledWith('daily');
+    expect(mockGetChart).toHaveBeenCalledWith('daily');
   });
 
   it('defaults to realtime for invalid type', async () => {
-    mockGetMelonChart.mockResolvedValue([]);
+    mockGetChart.mockResolvedValue([]);
 
     const result = await GET(new Request('http://localhost/api/melon/chart?type=invalid'));
 
     expect(result.status).toBe(200);
-    expect(mockGetMelonChart).toHaveBeenCalledWith('realtime');
+    expect(mockGetChart).toHaveBeenCalledWith('realtime');
   });
 
   it('returns 500 on service error', async () => {
-    mockGetMelonChart.mockRejectedValue(new Error('melon down'));
+    mockGetChart.mockRejectedValue(new Error('melon down'));
 
     const result = (await GET(new Request('http://localhost/api/melon/chart'))) as unknown as MockResponse;
 

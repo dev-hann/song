@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, handleErrors } from '@/server/lib/route-helpers';
-import { getFollowedChannels } from '@/server/models/channel';
+import { useCases } from '@/server/application/wiring';
+import { ChannelsResponseSchema } from '@/server/application/schemas/response';
 
 export const GET = handleErrors(async () => {
   const { session, error } = await requireAuth();
-  if (error) {return error;}
+  if (error) { return error; }
 
-  const channels = await getFollowedChannels(session.user.id);
-  return NextResponse.json(channels);
+  const channels = await useCases.channels.getFollowed(session.user.id);
+  return NextResponse.json(ChannelsResponseSchema.parse(channels));
 });

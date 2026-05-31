@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
-import { handleErrors } from '@/server/lib/route-helpers';
-import { getSharedPlaylist } from '@/server/models/playlist';
+import { handleErrors, validateParams } from '@/server/lib/route-helpers';
+import { useCases } from '@/server/application/wiring';
+import { PathShareIdSchema } from '@/server/application/schemas/request';
 
 export const GET = handleErrors(async (
   _request: Request,
   { params }: { params: Promise<{ shareId: string }> },
 ) => {
   const { shareId } = await params;
-  const playlist = await getSharedPlaylist(shareId);
+  const { data, error: paramError } = validateParams(PathShareIdSchema, { shareId });
+  if (paramError) { return paramError; }
+
+  const playlist = await useCases.playlists.getShared(data.shareId);
   if (!playlist) {
     return NextResponse.json({ error: 'Playlist not found' }, { status: 404 });
   }

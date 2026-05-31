@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { getRelatedVideos } from '@/server/services/recommendations';
-import { RelatedVideosResponseSchema } from '@/server/models/related';
+import { useCases } from '@/server/application/wiring';
 
-const VideoIdSchema = z.object({
-  id: z.string().min(1, 'Video ID is required').max(20),
-});
+import { VideoIdSchema } from '@/server/application/schemas/request';
+import { RelatedVideosResponseValidationSchema } from '@/server/application/schemas/response';
 
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
@@ -21,8 +18,8 @@ export async function GET(request: Request) {
   const { id } = paramsResult.data;
 
   try {
-    const related = await getRelatedVideos(id);
-    const validated = RelatedVideosResponseSchema.parse(related);
+    const related = await useCases.recommendations.getRelated(id);
+    const validated = RelatedVideosResponseValidationSchema.parse(related);
     return NextResponse.json(validated);
   } catch (error) {
     console.error('[Related] Error:', error);

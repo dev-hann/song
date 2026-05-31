@@ -1,25 +1,23 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { requireAuth, validateBody, handleErrors } from '@/server/lib/route-helpers';
-import { updateFolder, deleteFolder } from '@/server/models/playlist';
-
-const UpdateFolderSchema = z.object({
-  name: z.string().min(1).max(200).optional(),
-  sortOrder: z.number().int().min(0).optional(),
-});
+import { requireAuth, validateBody, validateParams, handleErrors } from '@/server/lib/route-helpers';
+import { useCases } from '@/server/application/wiring';
+import { PathIdSchema, UpdateFolderSchema } from '@/server/application/schemas/request';
 
 export const PATCH = handleErrors(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) => {
   const { session, error } = await requireAuth();
-  if (error) {return error;}
+  if (error) { return error; }
 
   const { id } = await params;
-  const { data, error: bodyError } = validateBody(UpdateFolderSchema, await request.json());
-  if (bodyError) {return bodyError;}
+  const { data: pathData, error: paramError } = validateParams(PathIdSchema, { id });
+  if (paramError) { return paramError; }
 
-  const folder = await updateFolder(session.user.id, id, data);
+  const { data, error: bodyError } = validateBody(UpdateFolderSchema, await request.json());
+  if (bodyError) { return bodyError; }
+
+  const folder = await useCases.folders.update(session.user.id, pathData.id, data);
   if (!folder) {
     return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
   }
@@ -31,10 +29,13 @@ export const DELETE = handleErrors(async (
   { params }: { params: Promise<{ id: string }> },
 ) => {
   const { session, error } = await requireAuth();
-  if (error) {return error;}
+  if (error) { return error; }
 
   const { id } = await params;
-  const deleted = await deleteFolder(session.user.id, id);
+  const { data: pathData, error: paramError } = validateParams(PathIdSchema, { id });
+  if (paramError) { return paramError; }
+
+  const deleted = await useCases.folders.delete(session.user.id, pathData.id);
   if (!deleted) {
     return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
   }

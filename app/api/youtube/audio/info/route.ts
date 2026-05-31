@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { getInnertube } from '@/server/services/youtube';
-import { fromBasicInfo } from '@/server/models/audio';
-import { AudioInfoResponseSchema } from '@/server/schemas/api';
-
-const VideoIdSchema = z.object({
-  id: z.string().min(1, 'Video ID is required').max(20),
-});
+import { useCases } from '@/server/application/wiring';
+import { VideoIdSchema } from '@/server/application/schemas/request';
+import { AudioInfoResponseSchema } from '@/server/application/schemas/response';
 
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
@@ -22,9 +17,7 @@ export async function GET(request: Request) {
   const { id } = paramsResult.data;
 
   try {
-    const innertube = await getInnertube();
-    const info = await innertube.getBasicInfo(id);
-    const audioInfo = fromBasicInfo(info);
+    const audioInfo = await useCases.audio.getInfo(id);
     const validatedResponse = AudioInfoResponseSchema.parse(audioInfo);
     return NextResponse.json(validatedResponse);
   } catch (error) {

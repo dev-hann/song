@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server';
-import { requireAuth, handleErrors } from '@/server/lib/route-helpers';
-import { duplicatePlaylist } from '@/server/models/playlist';
+import { requireAuth, validateParams, handleErrors } from '@/server/lib/route-helpers';
+import { useCases } from '@/server/application/wiring';
+import { PathIdSchema } from '@/server/application/schemas/request';
 
 export const POST = handleErrors(async (
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) => {
   const { session, error } = await requireAuth();
-  if (error) {return error;}
+  if (error) { return error; }
 
   const { id } = await params;
-  const result = await duplicatePlaylist(session.user.id, id);
+  const { data, error: paramError } = validateParams(PathIdSchema, { id });
+  if (paramError) { return paramError; }
+
+  const result = await useCases.playlists.duplicate(session.user.id, data.id);
 
   if (!result) {
     return NextResponse.json({ error: 'Playlist not found' }, { status: 404 });

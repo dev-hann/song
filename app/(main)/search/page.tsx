@@ -4,13 +4,11 @@ import { useState, useMemo } from 'react';
 import { Search as SearchIcon, X, Clock } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useSearchQuery, useLikeCheck } from '@/queries';
-import { useAudioStore } from '@/store';
 import { TrackItem } from '@/components/ui/track-item';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
 import { AddToPlaylistSheet } from '@/components/ui/add-to-playlist-sheet';
 import { SearchStatus } from '@/constants';
-import { searchResultToAudio } from '@/lib/track-adapters';
 import { useTrackContextMenu } from '@/hooks/use-track-context-menu';
 
 export default function SearchPage() {
@@ -28,7 +26,6 @@ export default function SearchPage() {
   const [shouldSearch, setShouldSearch] = useState(!!initialQuery);
 
   const { data: results = [], status: queryStatus } = useSearchQuery(shouldSearch ? query : '');
-  const { setQueue } = useAudioStore();
 
   const {
     contextTrack,
@@ -39,9 +36,11 @@ export default function SearchPage() {
     setPlaylistOpen,
     openContext,
     openPlaylist,
+    playNow,
     addToQueue,
     playNext,
     openInYoutube,
+    share,
   } = useTrackContextMenu();
 
   const searchStatus = useMemo(() => {
@@ -65,8 +64,14 @@ export default function SearchPage() {
     setShouldSearch(true);
   };
 
-  const handlePlayTrack = (track: typeof results[0], index: number) => {
-    setQueue(results.map(searchResultToAudio), index);
+  const handlePlayTrack = (track: typeof results[0]) => {
+    openContext({
+      id: track.id,
+      title: track.title,
+      channel: track.channel.name,
+      thumbnail: track.thumbnail,
+      duration: track.duration,
+    });
   };
 
   return (
@@ -170,7 +175,7 @@ export default function SearchPage() {
           </div>
         ) : results.length > 0 ? (
           <div className="space-y-0.5">
-              {results.map((track, i) => (
+              {results.map((track, _i) => (
                 <TrackItem
                   key={track.id}
                   id={track.id}
@@ -178,7 +183,7 @@ export default function SearchPage() {
                   channel={track.channel.name}
                   thumbnail={track.thumbnail}
                   duration={track.duration}
-                  onClick={() => { handlePlayTrack(track, i); }}
+                  onClick={() => { handlePlayTrack(track); }}
                   onMore={() => {
                     openContext({
                       id: track.id,
@@ -203,9 +208,11 @@ export default function SearchPage() {
         onOpenChange={setContextOpen}
         track={contextTrack}
         isLiked={likeCheck?.liked}
+        onPlay={playNow}
         onAddToPlaylist={openPlaylist}
         onAddToQueue={addToQueue}
         onPlayNext={playNext}
+        onShare={share}
         onOpenInYoutube={openInYoutube}
       />
 

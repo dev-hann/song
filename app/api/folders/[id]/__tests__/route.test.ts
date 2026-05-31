@@ -14,9 +14,10 @@ vi.mock('next/server', () => ({
 }));
 
 vi.mock('@/server/auth', () => ({ auth: mockAuth }));
-vi.mock('@/server/models/playlist', () => ({
-  updateFolder: mockUpdateFolder,
-  deleteFolder: mockDeleteFolder,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    folders: { update: mockUpdateFolder, delete: mockDeleteFolder },
+  },
 }));
 
 import { PATCH, DELETE } from '../route';

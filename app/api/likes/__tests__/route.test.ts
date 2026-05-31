@@ -17,9 +17,14 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/models/like', () => ({
-  getAllLikes: mockGetAllLikes,
-  addLike: mockAddLike,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    likes: { getAll: mockGetAllLikes, add: mockAddLike },
+  },
+}));
+
+vi.mock('@/server/application/schemas/response', () => ({
+  LikesResponseSchema: { parse: (v: unknown) => v },
 }));
 
 import { GET, POST } from '../route';

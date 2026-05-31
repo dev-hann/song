@@ -18,10 +18,10 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/models/playlist', () => ({
-  getAllPlaylists: mockGetAllPlaylists,
-  getOrCreateLikedPlaylist: mockGetOrCreateLikedPlaylist,
-  createPlaylist: mockCreatePlaylist,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    playlists: { getAll: mockGetAllPlaylists, getOrCreateLiked: mockGetOrCreateLikedPlaylist, create: mockCreatePlaylist },
+  },
 }));
 
 import { GET, POST } from '../route';

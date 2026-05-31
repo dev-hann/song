@@ -20,6 +20,7 @@ interface AudioStore {
   shuffle: boolean;
   liked: boolean;
   queue: Audio[];
+  recommendedQueue: Audio[];
   currentIndex: number;
   autoplay: boolean;
 
@@ -43,13 +44,15 @@ interface AudioStore {
   addNext: (audio: Audio) => void;
   removeFromQueue: (index: number) => void;
   clearQueue: () => void;
+  removeFromRecommendedQueue: (index: number) => void;
+  clearRecommendedQueue: () => void;
+  addToRecommendedQueue: (audio: Audio) => void;
 }
 
-async function loadAutoplayQueue(audio: Audio): Promise<{ queue: Audio[]; first: Audio } | null> {
+async function loadRelatedTracks(audio: Audio): Promise<Audio[] | null> {
   const related = await fetchRelatedTracks(audio.id);
   if (related.results.length === 0) {return null;}
-  const tracks = related.results.map(searchResultToAudio);
-  return { queue: tracks, first: tracks[0] };
+  return related.results.map(searchResultToAudio);
 }
 
 export const useAudioStore = create<AudioStore>((set, get) => ({
@@ -61,6 +64,7 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
   shuffle: false,
   liked: false,
   queue: [],
+  recommendedQueue: [],
   currentIndex: -1,
   autoplay: true,
 
@@ -166,7 +170,7 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
   toggleAutoplay: () => { set((state) => ({ autoplay: !state.autoplay })); },
 
   playNext: () => {
-    const { queue, currentIndex, repeatMode, shuffle, autoplay, audio } = get();
+    const { queue, recommendedQueue, currentIndex, repeatMode, shuffle, autoplay, audio } = get();
     if (queue.length === 0) {return;}
 
     let nextIndex: number;
@@ -175,20 +179,32 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
     } else {
       nextIndex = currentIndex + 1;
       if (nextIndex >= queue.length) {
-        if (repeatMode === RepeatMode.ALL) {nextIndex = 0;}
-        else {
+        if (repeatMode === RepeatMode.ALL) {
+          nextIndex = 0;
+        } else {
+          if (recommendedQueue.length > 0) {
+            const next = recommendedQueue[0];
+            set({
+              recommendedQueue: recommendedQueue.slice(1),
+              audio: next,
+              status: AudioStatus.LOADING,
+            });
+            audioPlayer.load(next.id, next).catch(() => undefined);
+            return;
+          }
+
           if (autoplay && audio) {
             (async () => {
               try {
-                const result = await loadAutoplayQueue(audio);
-                if (result) {
+                const tracks = await loadRelatedTracks(audio);
+                if (tracks && tracks.length > 0) {
+                  const first = tracks[0];
                   set({
-                    queue: result.queue,
-                    currentIndex: 0,
-                    audio: result.first,
+                    recommendedQueue: tracks.slice(1),
+                    audio: first,
                     status: AudioStatus.LOADING,
                   });
-                  audioPlayer.load(result.first.id, result.first).catch(() => undefined);
+                  audioPlayer.load(first.id, first).catch(() => undefined);
                 }
               } catch (error) {
                 console.error('Autoplay error:', error);
@@ -237,6 +253,7 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
     const track = tracks[idx];
     set({
       queue: tracks,
+      recommendedQueue: [],
       currentIndex: idx,
       audio: track,
       status: AudioStatus.LOADING,
@@ -269,5 +286,17 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
     return { queue: newQueue, currentIndex: Math.max(0, newIndex) };
   }); },
 
-  clearQueue: () => { set({ queue: [], currentIndex: -1, audio: null, status: AudioStatus.IDLE }); },
+  clearQueue: () => { set({ queue: [], recommendedQueue: [], currentIndex: -1, audio: null, status: AudioStatus.IDLE }); },
+
+  removeFromRecommendedQueue: (index) => { set((state) => {
+    const newRecommended = [...state.recommendedQueue];
+    newRecommended.splice(index, 1);
+    return { recommendedQueue: newRecommended };
+  }); },
+
+  clearRecommendedQueue: () => { set({ recommendedQueue: [] }); },
+
+  addToRecommendedQueue: (audio) => { set((state) => ({
+    recommendedQueue: [...state.recommendedQueue, audio],
+  })); },
 }));

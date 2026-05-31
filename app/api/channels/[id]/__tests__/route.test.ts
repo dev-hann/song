@@ -1,10 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockAuth, mockGetInnertube, mockIsFollowing } = vi.hoisted(() => ({
+const { mockAuth, mockGetChannel } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
-  mockGetInnertube: vi.fn(),
-  mockIsFollowing: vi.fn(),
+  mockGetChannel: vi.fn(),
 }));
 
 vi.mock('next/server', () => ({
@@ -17,12 +16,14 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/services/youtube', () => ({
-  getInnertube: mockGetInnertube,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    channels: { get: mockGetChannel },
+  },
 }));
 
-vi.mock('@/server/models/channel', () => ({
-  isFollowing: mockIsFollowing,
+vi.mock('@/server/application/schemas/response', () => ({
+  ChannelResponseSchema: { parse: (v: unknown) => v },
 }));
 
 import { GET } from '../route';
@@ -34,33 +35,27 @@ const session = { user: { id: 'user1' } };
 beforeEach(() => {
   vi.clearAllMocks();
   mockAuth.mockResolvedValue(session);
-  mockIsFollowing.mockReturnValue(false);
 });
-
-function makeMockChannel(videos: Record<string, unknown>[] = []) {
-  return {
-    videos,
-    metadata: {
-      title: 'Test Channel',
-      avatar: [{ url: 'https://img.example.com/avatar.jpg' }],
-      subscriberCount: '1.2M',
-    },
-  };
-}
 
 describe('GET /api/channels/:id', () => {
   it('returns channel info with videos', async () => {
-    const mockChannel = makeMockChannel([
-      {
-        id: 'vid1',
-        title: 'Video 1',
-        thumbnails: [{ url: 'https://img.example.com/thumb.jpg' }],
-        duration: { seconds: 200 },
-        author: { name: 'Test Channel', thumbnails: [{ url: 'https://img.example.com/avatar.jpg' }] },
-      },
-    ]);
-    const mockInnertube = { getChannel: vi.fn().mockResolvedValue(mockChannel) };
-    mockGetInnertube.mockResolvedValue(mockInnertube);
+    const channelData = {
+      id: 'ch1',
+      name: 'Test Channel',
+      thumbnail: 'https://img.example.com/avatar.jpg',
+      subscriberCount: '1.2M',
+      following: false,
+      videos: [
+        {
+          id: 'vid1',
+          title: 'Video 1',
+          thumbnail: 'https://img.example.com/thumb.jpg',
+          duration: 200,
+          channel: { name: 'Test Channel', thumbnail: 'https://img.example.com/avatar.jpg' },
+        },
+      ],
+    };
+    mockGetChannel.mockResolvedValue(channelData);
 
     const result = (await GET(
       new Request('http://localhost/api/channels/ch1'),
@@ -74,57 +69,13 @@ describe('GET /api/channels/:id', () => {
     expect(result.body.subscriberCount).toBe('1.2M');
     expect(result.body.following).toBe(false);
     expect(result.body.videos).toHaveLength(1);
-    expect(result.body.videos[0]).toEqual({
-      id: 'vid1',
-      title: 'Video 1',
-      thumbnail: 'https://img.example.com/thumb.jpg',
-      duration: 200,
-      channel: { name: 'Test Channel', thumbnail: 'https://img.example.com/avatar.jpg' },
-    });
-  });
-
-  it('handles video id as object with video_id', async () => {
-    const mockChannel = makeMockChannel([
-      {
-        id: { videoId: 'vidObj1' },
-        title: { text: 'Obj Title' },
-        thumbnails: [{ url: 'https://img.example.com/thumb.jpg' }],
-        duration: { seconds: 100 },
-        author: { name: 'Test', thumbnails: [{ url: 'https://img.example.com/avatar.jpg' }] },
-      },
-    ]);
-    const mockInnertube = { getChannel: vi.fn().mockResolvedValue(mockChannel) };
-    mockGetInnertube.mockResolvedValue(mockInnertube);
-
-    const result = (await GET(
-      new Request('http://localhost/api/channels/ch1'),
-      { params: Promise.resolve({ id: 'ch1' }) },
-    )) as unknown as MockResponse;
-
-    expect(result.body.videos[0].id).toBe('vidObj1');
-    expect(result.body.videos[0].title).toBe('Obj Title');
-  });
-
-  it('skips videos with empty id', async () => {
-    const mockChannel = makeMockChannel([
-      { id: '', title: 'No ID' },
-      { id: undefined, title: 'Undefined ID' },
-    ]);
-    const mockInnertube = { getChannel: vi.fn().mockResolvedValue(mockChannel) };
-    mockGetInnertube.mockResolvedValue(mockInnertube);
-
-    const result = (await GET(
-      new Request('http://localhost/api/channels/ch1'),
-      { params: Promise.resolve({ id: 'ch1' }) },
-    )) as unknown as MockResponse;
-
-    expect(result.body.videos).toHaveLength(0);
+    expect(mockGetChannel).toHaveBeenCalledWith('user1', 'ch1');
   });
 
   it('returns following true when user follows channel', async () => {
-    mockIsFollowing.mockReturnValue(true);
-    const mockInnertube = { getChannel: vi.fn().mockResolvedValue(makeMockChannel()) };
-    mockGetInnertube.mockResolvedValue(mockInnertube);
+    mockGetChannel.mockResolvedValue({
+      id: 'ch1', name: 'Test', following: true, videos: [],
+    });
 
     const result = (await GET(
       new Request('http://localhost/api/channels/ch1'),
@@ -134,34 +85,19 @@ describe('GET /api/channels/:id', () => {
     expect(result.body.following).toBe(true);
   });
 
-  it('returns following false when not authenticated', async () => {
+  it('returns 401 when not authenticated', async () => {
     mockAuth.mockResolvedValueOnce(null);
-    const mockInnertube = { getChannel: vi.fn().mockResolvedValue(makeMockChannel()) };
-    mockGetInnertube.mockResolvedValue(mockInnertube);
 
-    const result = (await GET(
+    const result = await GET(
       new Request('http://localhost/api/channels/ch1'),
       { params: Promise.resolve({ id: 'ch1' }) },
-    )) as unknown as MockResponse;
+    );
 
-    expect(result.body.following).toBe(false);
+    expect(result.status).toBe(401);
   });
 
-  it('returns empty videos when channel has no videos', async () => {
-    const mockChannel = { metadata: { title: 'Empty Channel' } };
-    const mockInnertube = { getChannel: vi.fn().mockResolvedValue(mockChannel) };
-    mockGetInnertube.mockResolvedValue(mockInnertube);
-
-    const result = (await GET(
-      new Request('http://localhost/api/channels/ch1'),
-      { params: Promise.resolve({ id: 'ch1' }) },
-    )) as unknown as MockResponse;
-
-    expect(result.body.videos).toEqual([]);
-  });
-
-  it('returns 500 on youtube api error', async () => {
-    mockGetInnertube.mockRejectedValue(new Error('youtube down'));
+  it('returns 500 on use case error', async () => {
+    mockGetChannel.mockRejectedValue(new Error('youtube down'));
 
     const result = await GET(
       new Request('http://localhost/api/channels/ch1'),

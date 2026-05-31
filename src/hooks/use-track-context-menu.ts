@@ -29,6 +29,12 @@ export function useTrackContextMenu() {
     }
   };
 
+  const playNow = () => {
+    if (contextTrack) {
+      useAudioStore.getState().setQueue([flatTrackToAudio(contextTrack)]);
+    }
+  };
+
   const addToQueue = () => {
     if (contextTrack) {
       useAudioStore.getState().addToQueue(flatTrackToAudio(contextTrack));
@@ -47,6 +53,12 @@ export function useTrackContextMenu() {
     }
   };
 
+  const share = () => {
+    if (contextTrack) {
+      navigator.clipboard.writeText(`https://youtube.com/watch?v=${contextTrack.id}`).catch(() => undefined);
+    }
+  };
+
   return {
     contextTrack,
     contextOpen,
@@ -56,8 +68,10 @@ export function useTrackContextMenu() {
     setPlaylistOpen,
     openContext,
     openPlaylist,
+    playNow,
     addToQueue,
     playNext,
     openInYoutube,
+    share,
   };
 }

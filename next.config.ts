@@ -2,7 +2,8 @@ import type { NextConfig } from 'next';
 import { readFileSync } from 'fs';
 import { withSerwist } from '@serwist/turbopack';
 
-const { version } = JSON.parse(readFileSync('package.json', 'utf-8'));
+const pkg = JSON.parse(readFileSync('package.json', 'utf-8')) as Record<string, unknown>;
+const version = pkg.version as string;
 
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -12,7 +13,7 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ];
 
-const nextConfig: NextConfig = withSerwist({
+const config: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
   allowedDevOrigins: ['100.102.147.53', 'song.dev-hann.com'],
@@ -30,6 +31,8 @@ const nextConfig: NextConfig = withSerwist({
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
-});
+};
+
+const nextConfig = withSerwist(config);
 
 export default nextConfig;

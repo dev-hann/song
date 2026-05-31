@@ -1,24 +1,23 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { requireAuth, validateBody, handleErrors } from '@/server/lib/route-helpers';
-import { reorderPlaylistTracks, getPlaylistById } from '@/server/models/playlist';
-
-const ReorderSchema = z.object({
-  trackIds: z.array(z.number().int().positive()).min(1),
-});
+import { requireAuth, validateBody, validateParams, handleErrors } from '@/server/lib/route-helpers';
+import { useCases } from '@/server/application/wiring';
+import { PathIdSchema, ReorderSchema } from '@/server/application/schemas/request';
 
 export const PUT = handleErrors(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) => {
   const { session, error } = await requireAuth();
-  if (error) {return error;}
+  if (error) { return error; }
 
   const { id } = await params;
-  const { data, error: bodyError } = validateBody(ReorderSchema, await request.json());
-  if (bodyError) {return bodyError;}
+  const { data: pathData, error: paramError } = validateParams(PathIdSchema, { id });
+  if (paramError) { return paramError; }
 
-  await reorderPlaylistTracks(session.user.id, id, data.trackIds);
-  const playlist = await getPlaylistById(session.user.id, id);
+  const { data, error: bodyError } = validateBody(ReorderSchema, await request.json());
+  if (bodyError) { return bodyError; }
+
+  await useCases.playlists.reorder(session.user.id, pathData.id, data.trackIds);
+  const playlist = await useCases.playlists.getById(session.user.id, pathData.id);
   return NextResponse.json(playlist);
 });

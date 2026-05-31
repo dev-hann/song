@@ -13,8 +13,10 @@ vi.mock('next/server', () => ({
 }));
 
 vi.mock('@/server/auth', () => ({ auth: mockAuth }));
-vi.mock('@/server/models/playlist', () => ({
-  movePlaylistToFolder: mockMovePlaylistToFolder,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    folders: { movePlaylist: mockMovePlaylistToFolder },
+  },
 }));
 
 import { POST } from '../route';

@@ -112,8 +112,8 @@ export function useDeleteFolder() {
   return useMutation({
     mutationFn: deleteFolder,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.folders.all() });
-      qc.invalidateQueries({ queryKey: queryKeys.playlists.all() });
+      qc.invalidateQueries({ queryKey: queryKeys.folders.all() }).catch(() => undefined);
+      qc.invalidateQueries({ queryKey: queryKeys.playlists.all() }).catch(() => undefined);
     },
   });
 }
@@ -124,8 +124,8 @@ export function useMovePlaylistToFolder() {
     mutationFn: ({ playlistId, folderId }: { playlistId: string; folderId: string | null }) =>
       movePlaylistToFolder(playlistId, folderId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.playlists.all() });
-      qc.invalidateQueries({ queryKey: queryKeys.folders.all() });
+      qc.invalidateQueries({ queryKey: queryKeys.playlists.all() }).catch(() => undefined);
+      qc.invalidateQueries({ queryKey: queryKeys.folders.all() }).catch(() => undefined);
     },
   });
 }

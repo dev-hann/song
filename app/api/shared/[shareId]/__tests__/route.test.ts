@@ -13,10 +13,13 @@ vi.mock('next/server', () => ({
 
 vi.mock('@/server/lib/route-helpers', () => ({
   handleErrors: (fn: Function) => fn,
+  validateParams: (_schema: unknown, params: Record<string, string>) => ({ data: params, error: null }),
 }));
 
-vi.mock('@/server/models/playlist', () => ({
-  getSharedPlaylist: mockGetSharedPlaylist,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    playlists: { getShared: mockGetSharedPlaylist },
+  },
 }));
 
 import { GET } from '../route';

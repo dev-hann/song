@@ -2,55 +2,27 @@
 
 Personal streaming PWA — Next.js 16 + App Router + Auth.js + PostgreSQL + Drizzle ORM
 
+## Domain Documentation
+
+도메인 정의, 비즈니스 정책, 제약 조건은 [`docs/README.md`](docs/README.md) 참조.
+
 ## Architecture
+
+아키텍처 원칙, 레이어별 역할/규칙, 검증 전략, 테스트 전략은 [`docs/architecture.md`](docs/architecture.md) 참조.
 
 ```
 song/
-├── app/                    # Next.js App Router
-│   ├── (auth)/login/       # Login page
-│   ├── (main)/             # Authenticated pages (home, search, chart, etc.)
-│   ├── api/                # Route Handlers (22 endpoints)
-│   ├── layout.tsx          # Root layout
-│   └── not-found.tsx       # 404 page
-├── server/                 # Server-side business logic
-│   ├── auth.ts             # Auth.js config (Google provider, JWT strategy)
-│   ├── db/                 # Database layer
-│   │   ├── schema.ts       # Drizzle ORM table definitions (camelCase columns)
-│   │   └── index.ts        # PostgreSQL connection + Drizzle initialization
-│   ├── lib/                # env.ts, route-helpers.ts (requireAuth, validateBody, handleErrors)
-│   ├── models/             # Drizzle query functions + Zod schemas + DTO layer
-│   │   ├── dto.ts          # DB row → API response DTO mapping functions
-│   │   ├── user.ts         # User model (async)
-│   │   ├── like.ts         # Like model (async)
-│   │   ├── playlist.ts     # Playlist model (async)
-│   │   ├── history.ts      # History model (async)
-│   │   ├── channel.ts      # Channel model (async)
-│   │   ├── audio.ts        # Zod schemas + YouTube → Audio mapper (no DB)
-│   │   ├── search.ts       # Zod schemas + search result parser (no DB)
-│   │   ├── related.ts      # Zod schemas + related videos parser (no DB)
-│   │   └── youtube-common.ts # Shared YouTube parsing utilities (no DB)
-│   ├── schemas/            # API request/response Zod schemas
-│   └── services/           # youtube, melon, recommendations, error-reporter
-├── src/                    # Client-side code
-│   ├── components/         # UI components
-│   ├── hooks/              # Custom hooks (use-like-toggle, use-track-context-menu, use-swipe-down)
-│   ├── queries/            # TanStack Query keys + staleTime options + hooks
-│   ├── services/           # API call functions (apiFetch throws on error)
-│   ├── store/              # Zustand stores (audio-store with extracted adapters)
-│   ├── context/            # React contexts
-│   ├── lib/                # Utilities (api-client, formatters, utils, track-adapters)
-│   ├── types/              # All TypeScript types + enums (camelCase)
-│   ├── constants/          # Re-exports from types/enums
-│   └── styles/             # Global styles
-├── scripts/                # Utility scripts
-│   └── migrate-sqlite-to-pg.ts # One-time SQLite → PostgreSQL data migration
-├── public/                 # Static assets
-├── proxy.ts                # Auth middleware (replaces Express authMiddleware)
-├── next.config.ts          # standalone output
-├── drizzle.config.ts       # Drizzle Kit configuration
-├── Dockerfile              # Multi-stage Docker build
-├── docker-compose.yml      # Docker Compose with PostgreSQL + Cloudflare Tunnel
-└── package.json            # Single project (no workspaces)
+├── app/                    # Presentation Layer — Route Handlers (HTTP 입출력)
+├── server/
+│   ├── domain/             # Domain Layer — 엔티티 + 규칙 + Port 인터페이스 (순수, 의존 제로)
+│   ├── application/        # Application Layer — 유스케이스 + 스키마 + wiring
+│   ├── infrastructure/     # Infrastructure Layer — DB repositories + 외부 API 구현체
+│   ├── lib/                # route-helpers (requireAuth, validateBody, validateParams, handleErrors), env
+│   └── auth.ts             # Auth.js config
+├── src/                    # Client-side (types, services, queries, hooks, store, components)
+├── docs/                   # Domain + Architecture 문서
+├── proxy.ts                # Auth middleware
+└── (config files)
 ```
 
 ## Commands
@@ -80,6 +52,8 @@ song/
 
 ## Coding Conventions
 
+아키텍처 원칙, 레이어별 역할/규칙은 [`docs/architecture.md`](docs/architecture.md) 참조.
+
 - TypeScript strict mode
 - ESM modules (`"type": "module"`)
 - File naming: `kebab-case.ts` / `kebab-case.tsx`
@@ -98,29 +72,24 @@ song/
 | `GOOGLE_CLIENT_ID` | Yes | Google OAuth Client ID |
 | `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth Client Secret |
 | `DATABASE_URL` | Yes | PostgreSQL connection string (e.g., `postgres://song:password@localhost:5432/song`) |
-| `GITHUB_TOKEN` | No | GitHub token for error reporting |
-| `GITHUB_REPO` | No | GitHub repo for error issues (default: dev-hann/song) |
 
 ## Key Technical Decisions
 
-- **Auth.js (next-auth v5)** handles Google OAuth + JWT sessions (replacing custom JWT)
+- **Clean Architecture + Factory DI** — 4-레이어 분리, Factory 함수로 의존성 주입. 상세는 [`docs/architecture.md`](docs/architecture.md)
+- **Auth.js (next-auth v5)** handles Google OAuth + JWT sessions
 - **PostgreSQL 17** via Docker with healthcheck
 - **Drizzle ORM** with postgres.js driver — type-safe query builder, no raw SQL
-- **DTO layer** (`server/models/dto.ts`) — separates DB rows from API responses
 - **camelCase columns** in Drizzle schema → camelCase API responses → camelCase client types
 - **snake_case table names** in PostgreSQL (internal, not exposed via API)
-- **`and()` from drizzle-orm** for multiple WHERE conditions (no chained `.where()`)
-- **Async model functions** — all DB operations are async (Drizzle + PostgreSQL)
 - **`output: 'standalone'`** for minimal Docker image
 - **`proxy.ts`** (not `middleware.ts`) — Next.js 16 convention
 - **`async params`** in route handlers — Next.js 16 requirement
-- **`force-dynamic`** on `(main)/layout.tsx` — AudioPlayer needs `document`
-- Server code imports types via `@/types` alias
 - **Node.js runtime** (not Edge) — required for postgres.js
 - **`apiFetch<T>()`** throws on non-ok responses, returns parsed JSON — no manual `!res.ok` checks
 - **Track adapters** (`src/lib/track-adapters.ts`) — canonical `toAudio()` functions for all track types
-- **Route helpers** (`server/lib/route-helpers.ts`) — `requireAuth()`, `validateBody()`, `handleErrors()`
-- **Custom hooks** — `useLikeToggle(audio)`, `useTrackContextMenu()` for shared UI logic
+- **Queue separation** — `queue` (user-selected) vs `recommendedQueue` (autoplay/recommended). User queue is never modified by autoplay
+- **Track tap → bottom sheet** — tapping any track opens a bottom sheet with options
+- **Autoplay append-only** — when queue is exhausted, autoplay fetches related tracks into `recommendedQueue` (never replaces user queue)
 
 ## TDD 워크플로우 (필수)
 
@@ -171,12 +140,14 @@ song/
 
 | 레이어 | 대상 디렉토리 | 목표 | 테스트 도구 | 스킬 |
 |--------|-------------|------|------------|------|
+| 도메인 규칙 | `server/domain/rules/` | 90%+ | Vitest (node) | `utility-testing` |
+| 유스케이스 | `server/application/use-cases/` | 80%+ | Vitest (node) | — |
+| Repository | `server/infrastructure/persistence/` | 80%+ | Vitest (node) | — |
+| 외부 API 파서 | `server/infrastructure/external/` | 80%+ | Vitest (node) | — |
+| API 라우트 | `app/api/` | 80%+ | Vitest + MSW (node) | `api-testing`, `youtube-mocking` |
 | 유틸리티 | `src/lib/` | 90%+ | Vitest (jsdom) | `utility-testing` |
 | 커스텀 훅 | `src/hooks/` | 90%+ | Vitest + RTL (jsdom) | `hook-testing` |
 | 상태관리 | `src/store/` | 90%+ | Vitest (jsdom) | — |
-| DB 모델 | `server/models/` | 80%+ | Vitest (node) | — |
-| 비즈니스 로직 | `server/services/` | 80%+ | Vitest (node) | — |
-| API 라우트 | `app/api/` | 80%+ | Vitest + MSW (node) | `api-testing`, `youtube-mocking` |
 | API 서비스 | `src/services/api/` | 80%+ | Vitest (jsdom) | — |
 | UI 컴포넌트 | `src/components/` | 70%+ | Vitest + RTL (jsdom) | `component-testing` |
 | 쿼리 훅 | `src/queries/` | 70%+ | Vitest + RTL (jsdom) | `hook-testing` |
@@ -230,14 +201,31 @@ mockDb.where.mockResolvedValueOnce([row]);
 mockDb.returning.mockResolvedValueOnce([{ id: 1 }]);
 ```
 
+### 유스케이스 테스트 패턴 (Factory DI)
+
+```typescript
+// vi.mock() 없이 mock Port 객체를 Factory에 직접 주입
+const mockLikeRepo: ILikeRepository = {
+  getAll: vi.fn().mockResolvedValue([mockLike]),
+  add: vi.fn(),
+  remove: vi.fn(),
+  isLiked: vi.fn(),
+  getLikedVideoIds: vi.fn(),
+};
+
+const getLikes = createGetLikes(mockLikeRepo);
+```
+
 ### 테스트 파일 배치
 
 ```
-src/lib/format-duration.ts       → src/lib/__tests__/format-duration.test.ts
-src/hooks/use-search.ts          → src/hooks/__tests__/use-search.test.ts
-src/components/audio-card.tsx     → src/components/__tests__/audio-card.test.tsx
-server/models/audio.ts           → server/models/__tests__/audio.test.ts
-app/api/youtube/search/route.ts  → app/api/youtube/search/__tests__/route.test.ts
+src/lib/format-duration.ts                    → src/lib/__tests__/format-duration.test.ts
+src/hooks/use-search.ts                       → src/hooks/__tests__/use-search.test.ts
+src/components/audio-card.tsx                  → src/components/__tests__/audio-card.test.tsx
+server/domain/rules/audio-filter.ts           → server/domain/rules/__tests__/audio-filter.test.ts
+server/application/use-cases/likes.ts          → server/application/use-cases/__tests__/likes.test.ts
+server/infrastructure/persistence/repositories/like.repository.ts → server/infrastructure/persistence/repositories/__tests__/like.repository.test.ts
+app/api/youtube/search/route.ts               → app/api/youtube/search/__tests__/route.test.ts
 ```
 
 ### 무엇을 테스트하고 무엇을 테스트하지 않는가
@@ -311,6 +299,7 @@ e2e/pwa/
 ## 코드 생성 규칙
 
 > 상세 패턴은 스킬 참조: `api-route-development`, `zod-validation`, `react-components`, `parser-patterns`, `api-layer`
+> 레이어별 역할/규칙은 [`docs/architecture.md`](docs/architecture.md) 참조
 
 ### 타입 가져오기
 
@@ -450,7 +439,9 @@ Auth: Auth.js session cookies (protected routes marked with 🔒, enforced by `p
 | GET | `/api/channels/followed` | Followed channels |
 | GET | `/api/channels/:id` | Channel info |
 | POST/DELETE | `/api/channels/:id/follow` | Follow/Unfollow |
-| POST | `/api/errors` | Client error reporting |
+| GET | `/api/onboarding/status` | Check if user needs onboarding |
+| GET | `/api/onboarding/genres` | Genre list with artists from Melon |
+| POST | `/api/onboarding` | Complete onboarding (seed likes/follows) |
 
 ## 작업 완료 체크리스트
 

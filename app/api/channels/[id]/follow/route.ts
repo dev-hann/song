@@ -1,29 +1,26 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { requireAuth, validateBody, handleErrors } from '@/server/lib/route-helpers';
-import { followChannel, unfollowChannel } from '@/server/models/channel';
-
-const FollowChannelSchema = z.object({
-  channelName: z.string().min(1).max(200),
-  channelThumbnail: z.string().url().max(1000).optional(),
-  subscriberCount: z.string().max(50).optional(),
-});
+import { requireAuth, validateBody, validateParams, handleErrors } from '@/server/lib/route-helpers';
+import { useCases } from '@/server/application/wiring';
+import { PathIdSchema, FollowChannelSchema } from '@/server/application/schemas/request';
 
 export const POST = handleErrors(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) => {
   const { session, error } = await requireAuth();
-  if (error) {return error;}
+  if (error) { return error; }
 
   const { id } = await params;
-  const { data, error: bodyError } = validateBody(FollowChannelSchema, await request.json());
-  if (bodyError) {return bodyError;}
+  const { data: pathData, error: paramError } = validateParams(PathIdSchema, { id });
+  if (paramError) { return paramError; }
 
-  const channel = await followChannel(session.user.id, {
-    channelId: id,
+  const { data, error: bodyError } = validateBody(FollowChannelSchema, await request.json());
+  if (bodyError) { return bodyError; }
+
+  const channel = await useCases.channels.follow(session.user.id, {
+    channelId: pathData.id,
     channelName: data.channelName,
-    channelThumbnail: data.channelThumbnail ?? '',
+    channelThumbnail: data.channelThumbnail,
     subscriberCount: data.subscriberCount,
   });
   return NextResponse.json(channel, { status: 201 });
@@ -34,10 +31,13 @@ export const DELETE = handleErrors(async (
   { params }: { params: Promise<{ id: string }> },
 ) => {
   const { session, error } = await requireAuth();
-  if (error) {return error;}
+  if (error) { return error; }
 
   const { id } = await params;
-  const removed = await unfollowChannel(session.user.id, id);
+  const { data, error: paramError } = validateParams(PathIdSchema, { id });
+  if (paramError) { return paramError; }
+
+  const removed = await useCases.channels.unfollow(session.user.id, data.id);
   if (!removed) {
     return NextResponse.json({ error: 'Not following this channel' }, { status: 404 });
   }

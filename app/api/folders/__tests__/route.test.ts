@@ -14,9 +14,10 @@ vi.mock('next/server', () => ({
 }));
 
 vi.mock('@/server/auth', () => ({ auth: mockAuth }));
-vi.mock('@/server/models/playlist', () => ({
-  getAllFolders: mockGetAllFolders,
-  createFolder: mockCreateFolder,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    folders: { getAll: mockGetAllFolders, create: mockCreateFolder },
+  },
 }));
 
 import * as route from '../route';

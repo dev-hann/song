@@ -18,6 +18,14 @@ export function validateBody<T>(schema: ZodSchema<T>, data: unknown) {
   return { data: result.data, error: null };
 }
 
+export function validateParams<T extends Record<string, string>>(schema: ZodSchema<T>, params: T) {
+  const result = schema.safeParse(params);
+  if (!result.success) {
+    return { data: null, error: NextResponse.json({ error: result.error.issues[0].message }, { status: 400 }) };
+  }
+  return { data: result.data, error: null };
+}
+
 export function handleErrors<T extends Record<string, string>>(
   fn: (request: Request, context: { params: Promise<T> }) => Promise<Response>,
 ): (request: Request, context: { params: Promise<T> }) => Promise<Response> {

@@ -3,9 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 type MockResponse = { body: Record<string, unknown>; status: number };
 
-const { mockGetInnertube, mockToSearchResponse } = vi.hoisted(() => ({
-  mockGetInnertube: vi.fn(),
-  mockToSearchResponse: vi.fn(),
+const { mockSearch } = vi.hoisted(() => ({
+  mockSearch: vi.fn(),
 }));
 
 vi.mock('next/server', () => ({
@@ -14,13 +13,14 @@ vi.mock('next/server', () => ({
   },
 }));
 
-vi.mock('@/server/services/youtube', () => ({
-  getInnertube: mockGetInnertube,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    audio: { search: mockSearch },
+  },
 }));
 
-vi.mock('@/server/models/search', () => ({
-  toSearchResponse: mockToSearchResponse,
-  SearchResponseSchema: { parse: (v: unknown) => v },
+vi.mock('@/server/application/schemas/response', () => ({
+  SearchResponseValidationSchema: { parse: (v: unknown) => v },
 }));
 
 import { GET } from '../route';
@@ -31,17 +31,14 @@ beforeEach(() => {
 
 describe('GET /api/youtube/search', () => {
   it('returns search results for valid query', async () => {
-    const searchResult = { results: [{ type: 'video', id: 'vid1', title: 'Test' }] };
-    const searchResponse = { query: 'test', results: searchResult.results, filters: {} };
-    const mockInnertube = { search: vi.fn().mockResolvedValue(searchResult) };
-    mockGetInnertube.mockResolvedValue(mockInnertube);
-    mockToSearchResponse.mockReturnValue(searchResponse);
+    const searchResponse = { query: 'test', results: [{ type: 'video', id: 'vid1', title: 'Test' }], filters: {} };
+    mockSearch.mockResolvedValue(searchResponse);
 
     const result = (await GET(new Request('http://localhost/api/youtube/search?q=test'))) as unknown as MockResponse;
 
     expect(result.status).toBe(200);
     expect(result.body.results).toHaveLength(1);
-    expect(mockToSearchResponse).toHaveBeenCalledWith(searchResult, 'test');
+    expect(mockSearch).toHaveBeenCalledWith('test');
   });
 
   it('returns 400 for missing query', async () => {
@@ -56,18 +53,8 @@ describe('GET /api/youtube/search', () => {
     expect(result.status).toBe(400);
   });
 
-  it('uses default filter when filter param is omitted', async () => {
-    const mockInnertube = { search: vi.fn().mockResolvedValue({}) };
-    mockGetInnertube.mockResolvedValue(mockInnertube);
-    mockToSearchResponse.mockReturnValue({ query: 'test', results: [], filters: {} });
-
-    await GET(new Request('http://localhost/api/youtube/search?q=test'));
-
-    expect(mockInnertube.search).toHaveBeenCalledWith('test');
-  });
-
   it('returns 500 on youtube api error', async () => {
-    mockGetInnertube.mockRejectedValue(new Error('youtube down'));
+    mockSearch.mockRejectedValue(new Error('youtube down'));
 
     const result = (await GET(new Request('http://localhost/api/youtube/search?q=test'))) as unknown as MockResponse;
 
@@ -76,7 +63,7 @@ describe('GET /api/youtube/search', () => {
   });
 
   it('returns generic message for non-Error throws', async () => {
-    mockGetInnertube.mockRejectedValue('string error');
+    mockSearch.mockRejectedValue('string error');
 
     const result = (await GET(new Request('http://localhost/api/youtube/search?q=test'))) as unknown as MockResponse;
 

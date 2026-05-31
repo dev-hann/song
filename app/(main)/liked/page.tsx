@@ -26,9 +26,11 @@ export default function LikedPage() {
     setPlaylistOpen,
     openContext,
     openPlaylist,
+    playNow,
     addToQueue,
     playNext,
     openInYoutube,
+    share,
   } = useTrackContextMenu();
 
   const handlePlay = (index: number) => {
@@ -90,7 +92,7 @@ export default function LikedPage() {
         </div>
       ) : (
         <div className="space-y-0.5 px-2">
-          {likes?.map((like, i) => (
+          {likes?.map((like, _i) => (
             <TrackItem
               key={like.videoId}
               id={like.videoId}
@@ -98,7 +100,15 @@ export default function LikedPage() {
               channel={like.channel}
               thumbnail={like.thumbnail}
               duration={like.duration}
-              onClick={() => { handlePlay(i); }}
+              onClick={() => {
+                openContext({
+                  id: like.videoId,
+                  title: like.title,
+                  channel: like.channel,
+                  thumbnail: like.thumbnail,
+                  duration: like.duration,
+                });
+              }}
               onMore={() => {
                 openContext({
                   id: like.videoId,
@@ -118,6 +128,7 @@ export default function LikedPage() {
         onOpenChange={setContextOpen}
         track={contextTrack}
         isLiked={true}
+        onPlay={playNow}
         onLike={() => {
           if (contextTrack) {
             toggleLike.mutate({
@@ -135,6 +146,7 @@ export default function LikedPage() {
         onAddToPlaylist={openPlaylist}
         onAddToQueue={addToQueue}
         onPlayNext={playNext}
+        onShare={share}
         onOpenInYoutube={openInYoutube}
       />
 

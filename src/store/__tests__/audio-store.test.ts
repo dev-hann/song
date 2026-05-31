@@ -17,6 +17,7 @@ const { mocks } = vi.hoisted(() => {
     fetchRelatedTracks: vi.fn(),
     addLike: vi.fn(),
     removeLike: vi.fn(),
+    searchResultToAudio: vi.fn((r: { id: string }) => ({ ...mockAudio, id: r.id })),
   };
   return { mocks };
 });
@@ -39,6 +40,10 @@ vi.mock('@/services/api', () => ({
   fetchRelatedTracks: mocks.fetchRelatedTracks,
   addLike: mocks.addLike,
   removeLike: mocks.removeLike,
+}));
+
+vi.mock('@/lib/track-adapters', () => ({
+  searchResultToAudio: mocks.searchResultToAudio,
 }));
 
 const mockAudio = {
@@ -65,6 +70,7 @@ beforeEach(() => {
     shuffle: false,
     liked: false,
     queue: [],
+    recommendedQueue: [],
     currentIndex: -1,
     autoplay: true,
   });
@@ -302,5 +308,132 @@ describe('setAudioById', () => {
     mocks.fetchAudioInfo.mockRejectedValueOnce(new Error('fail'));
     await useAudioStore.getState().setAudioById('bad');
     expect(useAudioStore.getState().status).toBe(AudioStatus.ERROR);
+  });
+});
+
+describe('recommendedQueue', () => {
+  it('initializes empty', () => {
+    expect(useAudioStore.getState().recommendedQueue).toEqual([]);
+  });
+
+  it('setQueue clears recommendedQueue', () => {
+    useAudioStore.setState({ recommendedQueue: [track('r1')] });
+    useAudioStore.getState().setQueue([track('v1'), track('v2')]);
+    expect(useAudioStore.getState().recommendedQueue).toEqual([]);
+  });
+
+  it('autoplay appends to recommendedQueue instead of replacing queue', async () => {
+    const tracks = [track('v1')];
+    useAudioStore.setState({
+      queue: tracks,
+      currentIndex: 0,
+      audio: tracks[0],
+      autoplay: true,
+      repeatMode: RepeatMode.OFF,
+      recommendedQueue: [],
+    });
+
+    const relatedResult = {
+      results: [
+        { id: 'rel1', type: 'video', title: 'Related 1', channel: { name: 'Artist' }, duration: 100 },
+        { id: 'rel2', type: 'video', title: 'Related 2', channel: { name: 'Artist' }, duration: 100 },
+      ],
+    };
+    mocks.fetchRelatedTracks.mockResolvedValueOnce(relatedResult);
+
+    useAudioStore.getState().playNext();
+
+    await vi.waitFor(() => {
+      expect(mocks.fetchRelatedTracks).toHaveBeenCalledWith('v1');
+    });
+
+    await vi.waitFor(() => {
+      const state = useAudioStore.getState();
+      expect(state.queue).toEqual(tracks);
+      expect(state.recommendedQueue.length).toBeGreaterThan(0);
+      expect(state.audio!.id).toBe('rel1');
+    });
+  });
+
+  it('does not autoplay when autoplay is off', () => {
+    const tracks = [track('v1')];
+    useAudioStore.setState({
+      queue: tracks,
+      currentIndex: 0,
+      audio: tracks[0],
+      autoplay: false,
+      repeatMode: RepeatMode.OFF,
+      recommendedQueue: [],
+    });
+
+    useAudioStore.getState().playNext();
+    expect(mocks.fetchRelatedTracks).not.toHaveBeenCalled();
+    expect(useAudioStore.getState().queue).toEqual(tracks);
+  });
+
+  it('plays through recommendedQueue after user queue ends', async () => {
+    const recommended = [track('r1'), track('r2')];
+    useAudioStore.setState({
+      queue: [track('v1')],
+      currentIndex: 0,
+      audio: track('v1'),
+      recommendedQueue: recommended,
+      autoplay: true,
+      repeatMode: RepeatMode.OFF,
+    });
+
+    useAudioStore.getState().playNext();
+
+    const state = useAudioStore.getState();
+    expect(state.audio!.id).toBe('r1');
+    expect(state.recommendedQueue).toEqual([track('r2')]);
+  });
+
+  it('removeFromRecommendedQueue removes from recommended', () => {
+    const recommended = [track('r1'), track('r2')];
+    useAudioStore.setState({ recommendedQueue: recommended });
+
+    useAudioStore.getState().removeFromRecommendedQueue(0);
+    expect(useAudioStore.getState().recommendedQueue).toEqual([track('r2')]);
+  });
+
+  it('clearRecommendedQueue empties recommended queue', () => {
+    useAudioStore.setState({ recommendedQueue: [track('r1'), track('r2')] });
+    useAudioStore.getState().clearRecommendedQueue();
+    expect(useAudioStore.getState().recommendedQueue).toEqual([]);
+  });
+
+  it('addToRecommendedQueue appends to recommended', () => {
+    useAudioStore.setState({ recommendedQueue: [track('r1')] });
+    useAudioStore.getState().addToRecommendedQueue(track('r2'));
+    expect(useAudioStore.getState().recommendedQueue).toEqual([track('r1'), track('r2')]);
+  });
+
+  it('fetches more recommendations when recommendedQueue is exhausted', async () => {
+    useAudioStore.setState({
+      queue: [track('v1')],
+      currentIndex: 0,
+      audio: track('v1'),
+      recommendedQueue: [track('r1')],
+      autoplay: true,
+      repeatMode: RepeatMode.OFF,
+    });
+
+    const relatedResult = {
+      results: [
+        { id: 'new1', type: 'video', title: 'New 1', channel: { name: 'Artist' }, duration: 100 },
+      ],
+    };
+    mocks.fetchRelatedTracks.mockResolvedValueOnce(relatedResult);
+
+    useAudioStore.getState().playNext();
+    expect(useAudioStore.getState().audio!.id).toBe('r1');
+
+    mocks.fetchRelatedTracks.mockResolvedValueOnce(relatedResult);
+    useAudioStore.getState().playNext();
+
+    await vi.waitFor(() => {
+      expect(mocks.fetchRelatedTracks).toHaveBeenCalled();
+    });
   });
 });

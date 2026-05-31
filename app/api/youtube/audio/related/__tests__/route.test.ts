@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockGetRelatedVideos } = vi.hoisted(() => ({
-  mockGetRelatedVideos: vi.fn(),
+const { mockGetRelated } = vi.hoisted(() => ({
+  mockGetRelated: vi.fn(),
 }));
 
 vi.mock('next/server', () => ({
@@ -11,12 +11,14 @@ vi.mock('next/server', () => ({
   },
 }));
 
-vi.mock('@/server/services/recommendations', () => ({
-  getRelatedVideos: mockGetRelatedVideos,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    recommendations: { getRelated: mockGetRelated },
+  },
 }));
 
-vi.mock('@/server/models/related', () => ({
-  RelatedVideosResponseSchema: { parse: (v: unknown) => v },
+vi.mock('@/server/application/schemas/response', () => ({
+  RelatedVideosResponseValidationSchema: { parse: (v: unknown) => v },
 }));
 
 import { GET } from '../route';
@@ -30,13 +32,13 @@ beforeEach(() => {
 describe('GET /api/youtube/audio/related', () => {
   it('returns related videos for valid video id', async () => {
     const related = [{ id: 'rel1', title: 'Related 1' }, { id: 'rel2', title: 'Related 2' }];
-    mockGetRelatedVideos.mockResolvedValue(related);
+    mockGetRelated.mockResolvedValue(related);
 
     const result = await GET(new Request('http://localhost/api/youtube/audio/related?id=vid1'));
 
     expect(result.status).toBe(200);
     expect(result.body).toEqual(related);
-    expect(mockGetRelatedVideos).toHaveBeenCalledWith('vid1');
+    expect(mockGetRelated).toHaveBeenCalledWith('vid1');
   });
 
   it('returns 400 for missing id', async () => {
@@ -52,7 +54,7 @@ describe('GET /api/youtube/audio/related', () => {
   });
 
   it('returns 500 on service error', async () => {
-    mockGetRelatedVideos.mockRejectedValue(new Error('service down'));
+    mockGetRelated.mockRejectedValue(new Error('service down'));
 
     const result = (await GET(new Request('http://localhost/api/youtube/audio/related?id=vid1'))) as unknown as MockResponse;
 
@@ -61,7 +63,7 @@ describe('GET /api/youtube/audio/related', () => {
   });
 
   it('returns generic message for non-Error throws', async () => {
-    mockGetRelatedVideos.mockRejectedValue(undefined);
+    mockGetRelated.mockRejectedValue(undefined);
 
     const result = (await GET(new Request('http://localhost/api/youtube/audio/related?id=vid1'))) as unknown as MockResponse;
 

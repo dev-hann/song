@@ -79,9 +79,11 @@ export default function PlaylistDetailPage() {
     contextOpen,
     setContextOpen,
     openContext,
+    playNow,
     addToQueue,
     playNext,
     openInYoutube,
+    share,
   } = useTrackContextMenu();
 
   const displayedTracks = useMemo(() => {
@@ -182,6 +184,28 @@ export default function PlaylistDetailPage() {
     }
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) {return;}
+
+    const oldIndex = displayedTracks.findIndex((t) => t.videoId === active.id);
+    const newIndex = displayedTracks.findIndex((t) => t.videoId === over.id);
+    if (oldIndex === -1 || newIndex === -1) {return;}
+
+    const reordered = arrayMove(displayedTracks, oldIndex, newIndex);
+    const trackIds = reordered.map((t) => t.id);
+
+    reorderTracks.mutate(trackIds, {
+      onError: () => { toast.error('순서 변경에 실패했습니다'); },
+    });
+  }, [displayedTracks, reorderTracks]);
+
   if (isLoading) {
     return (
       <div className="px-4 pt-6">
@@ -212,28 +236,6 @@ export default function PlaylistDetailPage() {
   const totalDurationText = formatTotalDuration(playlist.tracks?.reduce((sum, t) => sum + t.duration, 0) ?? 0);
 
   const canDrag = !isEditMode && sortBy === 'default' && !searchQuery.trim() && !playlist.isSystem && !playlist.rules && (playlist.tracks?.length ?? 0) > 1;
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) {return;}
-
-    const oldIndex = displayedTracks.findIndex((t) => t.videoId === active.id);
-    const newIndex = displayedTracks.findIndex((t) => t.videoId === over.id);
-    if (oldIndex === -1 || newIndex === -1) {return;}
-
-    const reordered = arrayMove(displayedTracks, oldIndex, newIndex);
-    const trackIds = reordered.map((t) => t.id);
-
-    reorderTracks.mutate(trackIds, {
-      onError: () => { toast.error('순서 변경에 실패했습니다'); },
-    });
-  }, [displayedTracks, reorderTracks]);
 
   const selectedTracks = displayedTracks.filter((t) => selectedVideoIds.has(t.videoId));
 
@@ -420,7 +422,7 @@ export default function PlaylistDetailPage() {
           ) : canDrag ? (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={displayedTracks.map((t) => t.videoId)} strategy={verticalListSortingStrategy}>
-                {displayedTracks.map((track, i) => (
+                {displayedTracks.map((track, _i) => (
                   <SortableTrackItem
                     key={track.videoId}
                     id={track.videoId}
@@ -428,7 +430,15 @@ export default function PlaylistDetailPage() {
                     channel={track.channel}
                     thumbnail={track.thumbnail}
                     duration={track.duration}
-                    onClick={() => { handlePlay(i); }}
+                    onClick={() => {
+                      openContext({
+                        id: track.videoId,
+                        title: track.title,
+                        channel: track.channel,
+                        thumbnail: track.thumbnail,
+                        duration: track.duration,
+                      });
+                    }}
                     onMore={() => {
                       openContext({
                          id: track.videoId,
@@ -443,7 +453,7 @@ export default function PlaylistDetailPage() {
               </SortableContext>
             </DndContext>
           ) : (
-            displayedTracks.map((track, i) => (
+            displayedTracks.map((track, _i) => (
               <TrackItem
                 key={track.videoId}
                 id={track.videoId}
@@ -451,7 +461,15 @@ export default function PlaylistDetailPage() {
                 channel={track.channel}
                 thumbnail={track.thumbnail}
                 duration={track.duration}
-                onClick={() => { handlePlay(i); }}
+                onClick={() => {
+                  openContext({
+                    id: track.videoId,
+                    title: track.title,
+                    channel: track.channel,
+                    thumbnail: track.thumbnail,
+                    duration: track.duration,
+                  });
+                }}
                 onMore={() => {
                   openContext({
                      id: track.videoId,
@@ -492,10 +510,12 @@ export default function PlaylistDetailPage() {
         open={contextOpen}
         onOpenChange={setContextOpen}
         track={contextTrack}
+        onPlay={playNow}
         onAddToQueue={addToQueue}
         onPlayNext={playNext}
+        onShare={share}
         onOpenInYoutube={openInYoutube}
-        onRemoveFromPlaylist={handleRemoveFromPlaylist}
+        onRemoveFromPlaylist={() => { handleRemoveFromPlaylist().catch(() => undefined); }}
       />
 
       {!playlist.isSystem && (

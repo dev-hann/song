@@ -15,6 +15,7 @@ export interface AudioStore {
   repeatMode: RepeatMode;
   shuffle: boolean;
   queue: Audio[];
+  recommendedQueue: Audio[];
   currentIndex: number;
   autoplay: boolean;
 
@@ -37,4 +38,7 @@ export interface AudioStore {
   removeFromQueue: (index: number) => void;
   clearQueue: () => void;
   toggleAutoplay: () => void;
+  removeFromRecommendedQueue: (index: number) => void;
+  clearRecommendedQueue: () => void;
+  addToRecommendedQueue: (audio: Audio) => void;
 }

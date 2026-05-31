@@ -50,4 +50,10 @@ export const queryKeys = {
     related: (videoId: string) => [...queryKeys.all, 'recommendations', 'related', videoId] as const,
     personalized: () => [...queryKeys.all, 'recommendations', 'personalized'] as const,
   },
+
+  onboarding: {
+    all: () => [...queryKeys.all, 'onboarding'] as const,
+    status: () => [...queryKeys.all, 'onboarding', 'status'] as const,
+    genres: () => [...queryKeys.all, 'onboarding', 'genres'] as const,
+  },
 } as const;

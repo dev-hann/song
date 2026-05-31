@@ -1,24 +1,23 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { requireAuth, validateBody, handleErrors } from '@/server/lib/route-helpers';
-import { movePlaylistToFolder } from '@/server/models/playlist';
-
-const MoveToFolderSchema = z.object({
-  folderId: z.string().nullable(),
-});
+import { requireAuth, validateBody, validateParams, handleErrors } from '@/server/lib/route-helpers';
+import { useCases } from '@/server/application/wiring';
+import { PathIdSchema, MoveToFolderSchema } from '@/server/application/schemas/request';
 
 export const POST = handleErrors(async (
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) => {
   const { session, error } = await requireAuth();
-  if (error) {return error;}
+  if (error) { return error; }
 
   const { id } = await params;
-  const { data, error: bodyError } = validateBody(MoveToFolderSchema, await request.json());
-  if (bodyError) {return bodyError;}
+  const { data: pathData, error: paramError } = validateParams(PathIdSchema, { id });
+  if (paramError) { return paramError; }
 
-  const moved = await movePlaylistToFolder(session.user.id, id, data.folderId);
+  const { data, error: bodyError } = validateBody(MoveToFolderSchema, await request.json());
+  if (bodyError) { return bodyError; }
+
+  const moved = await useCases.folders.movePlaylist(session.user.id, pathData.id, data.folderId);
   if (!moved) {
     return NextResponse.json({ error: 'Playlist or folder not found' }, { status: 404 });
   }

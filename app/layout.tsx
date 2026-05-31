@@ -3,6 +3,7 @@ import { SessionProvider } from 'next-auth/react';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'sonner';
 import { SerwistProvider } from '@serwist/turbopack/react';
+import { DisableContextMenu } from '@/components/providers/disable-context-menu';
 import { QueryClientProvider } from '@/components/providers/query-provider';
 import '@/styles/globals.css';
 
@@ -54,6 +55,7 @@ export default function RootLayout({
       <body>
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="dark">
+            <DisableContextMenu>
             <SerwistProvider swUrl="/serwist/sw.js">
               <QueryClientProvider>
                 {children}
@@ -69,6 +71,7 @@ export default function RootLayout({
               />
             </QueryClientProvider>
             </SerwistProvider>
+            </DisableContextMenu>
           </ThemeProvider>
         </SessionProvider>
       </body>

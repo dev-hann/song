@@ -1,7 +1,6 @@
 'use client';
 
 import { useHomeData } from '@/queries';
-import { useAudioStore } from '@/store';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChevronRight, Loader2, Sparkles, Music } from 'lucide-react';
@@ -11,7 +10,8 @@ import { toast } from 'sonner';
 import type { MelonChartItem, SearchResultAudio } from '@/types';
 import type { MelonChartType } from '@/services/api';
 import { formatDuration } from '@/lib/formatters';
-import { searchResultToAudio, historyToAudio } from '@/lib/track-adapters';
+import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
+import { useTrackContextMenu } from '@/hooks/use-track-context-menu';
 
 const CHART_TABS: { key: 'chart' | 'hot100' | 'dailyChart'; label: string; type: MelonChartType }[] = [
   { key: 'chart', label: '실시간', type: 'realtime' },
@@ -115,16 +115,27 @@ function RecommendationSkeleton() {
 
 export default function HomePage() {
   const { data, isLoading } = useHomeData();
-  const { setQueue, setAudio } = useAudioStore();
   const router = useRouter();
   const [loadingChartKey, setLoadingChartKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'chart' | 'hot100' | 'dailyChart'>('chart');
+
+  const {
+    contextTrack,
+    contextOpen,
+    setContextOpen,
+    openContext,
+    playNow,
+    addToQueue,
+    playNext,
+    openInYoutube,
+    share,
+  } = useTrackContextMenu();
 
   const activeChart = data?.[activeTab];
   const activeType = CHART_TABS.find((t) => t.key === activeTab)?.type ?? 'realtime';
   const recommendations = data?.recommendations;
 
-  const playChart = async (index: number) => {
+  const openChartContextMenu = async (index: number) => {
     if (!activeChart?.length || loadingChartKey != null) {return;}
     setLoadingChartKey(`${activeTab}-${index}`);
     try {
@@ -132,20 +143,32 @@ export default function HomePage() {
       const item = activeChart[index];
       const results = await fetchSearch(`${item.title} ${item.artist}`);
       if (results.length > 0) {
-        setQueue(results.slice(0, 10).map(searchResultToAudio), 0);
+        const r = results[0];
+        openContext({
+          id: r.id,
+          title: r.title,
+          channel: r.channel.name,
+          thumbnail: r.thumbnail,
+          duration: r.duration,
+        });
       } else {
         toast.error('검색 결과를 찾을 수 없습니다');
       }
     } catch {
-      toast.error('재생 중 오류가 발생했습니다');
+      toast.error('오류가 발생했습니다');
     } finally {
       setLoadingChartKey(null);
     }
   };
 
-  const playRecommendation = (track: SearchResultAudio, list: SearchResultAudio[]) => {
-    const idx = list.indexOf(track);
-    setQueue(list.map(searchResultToAudio), Math.max(0, idx));
+  const openRecommendationContext = (track: SearchResultAudio) => {
+    openContext({
+      id: track.id,
+      title: track.title,
+      channel: track.channel.name,
+      thumbnail: track.thumbnail,
+      duration: track.duration,
+    });
   };
 
   return (
@@ -172,7 +195,7 @@ export default function HomePage() {
                   <RecommendationItem
                     key={track.id}
                     track={track}
-                    onPlay={() => { playRecommendation(track, recommendations.fromChannels); }}
+                    onPlay={() => { openRecommendationContext(track); }}
                   />
                 ))}
               </div>
@@ -190,7 +213,7 @@ export default function HomePage() {
                   <RecommendationItem
                     key={track.id}
                     track={track}
-                    onPlay={() => { playRecommendation(track, recommendations.fromRecent); }}
+                    onPlay={() => { openRecommendationContext(track); }}
                   />
                 ))}
               </div>
@@ -229,7 +252,15 @@ export default function HomePage() {
             {data.recent.slice(0, 10).map((item) => (
               <button
                 key={item.videoId}
-                onClick={() => { setAudio(historyToAudio(item)); }}
+                onClick={() => {
+                  openContext({
+                    id: item.videoId,
+                    title: item.title,
+                    channel: item.channel,
+                    thumbnail: item.thumbnail,
+                    duration: item.duration,
+                  });
+                }}
                 className="flex-shrink-0 w-28 active:scale-95 transition-transform"
               >
                 <div className="w-28 h-28 rounded-xl overflow-hidden bg-surface mb-0">
@@ -278,12 +309,23 @@ export default function HomePage() {
                 key={`${activeTab}-${item.rank}`}
                 item={item}
                 isLoading={loadingChartKey === `${activeTab}-${i}`}
-                onPlay={() => { playChart(i).catch(() => undefined); }}
+                onPlay={() => { openChartContextMenu(i).catch(() => undefined); }}
               />
             ))}
           </div>
         )}
       </section>
+
+      <TrackContextMenu
+        open={contextOpen}
+        onOpenChange={setContextOpen}
+        track={contextTrack}
+        onPlay={playNow}
+        onAddToQueue={addToQueue}
+        onPlayNext={playNext}
+        onShare={share}
+        onOpenInYoutube={openInYoutube}
+      />
     </div>
   );
 }

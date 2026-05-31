@@ -2,7 +2,7 @@ import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import type { Provider } from 'next-auth/providers';
-import { findUserByEmail, createUser, updateLastLogin } from './models/user';
+import { userRepository } from './application/wiring';
 
 const providers: Provider[] = [
   Google({
@@ -48,23 +48,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user }) {
       if (!user.email) {return false;}
 
-      let dbUser = await findUserByEmail(user.email);
+      let dbUser = await userRepository.findByEmail(user.email);
       if (dbUser && !dbUser.isActive) {return false;}
       if (!dbUser) {
-        dbUser = await createUser({
+        dbUser = await userRepository.create({
           email: user.email,
           name: user.name ?? '',
           picture: user.image ?? '',
         });
       } else {
-        await updateLastLogin(dbUser.id);
+        await userRepository.updateLastLogin(dbUser.id);
       }
 
       return true;
     },
     async jwt({ token, user }) {
-      if (user?.email) {
-        const dbUser = await findUserByEmail(user.email);
+      if (user.email) {
+        const dbUser = await userRepository.findByEmail(user.email);
         if (dbUser) {
           token.id = dbUser.id;
           token.isActive = dbUser.isActive;

@@ -17,9 +17,10 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/models/playlist', () => ({
-  addTrackToPlaylist: mockAddTrackToPlaylist,
-  removeTrackFromPlaylist: mockRemoveTrackFromPlaylist,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    playlists: { addTrack: mockAddTrackToPlaylist, removeTrack: mockRemoveTrackFromPlaylist },
+  },
 }));
 
 import { POST, DELETE } from '../route';

@@ -16,8 +16,14 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/models/channel', () => ({
-  getFollowedChannels: mockGetFollowedChannels,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    channels: { getFollowed: mockGetFollowedChannels },
+  },
+}));
+
+vi.mock('@/server/application/schemas/response', () => ({
+  ChannelsResponseSchema: { parse: (v: unknown) => v },
 }));
 
 import { GET } from '../route';

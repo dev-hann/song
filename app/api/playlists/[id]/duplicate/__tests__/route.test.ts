@@ -16,8 +16,10 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/models/playlist', () => ({
-  duplicatePlaylist: mockDuplicatePlaylist,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    playlists: { duplicate: mockDuplicatePlaylist },
+  },
 }));
 
 import { POST } from '../route';

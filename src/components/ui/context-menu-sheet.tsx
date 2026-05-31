@@ -1,4 +1,4 @@
-import { Heart, ListPlus, Share2, User, ExternalLink, ListMusic, Play, Trash2 } from 'lucide-react';
+import { Play, Heart, ListPlus, Share2, User, ExternalLink, ListMusic, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import {
   Sheet,
@@ -19,6 +19,7 @@ export interface TrackContextMenuProps {
     duration: number;
   } | null;
   isLiked?: boolean;
+  onPlay?: () => void;
   onLike?: () => void;
   onAddToPlaylist?: () => void;
   onAddToQueue?: () => void;
@@ -34,6 +35,7 @@ export function TrackContextMenu({
   onOpenChange,
   track,
   isLiked,
+  onPlay,
   onLike,
   onAddToPlaylist,
   onAddToQueue,
@@ -48,8 +50,8 @@ export function TrackContextMenu({
   const items = [
     { icon: ListPlus, label: '재생목록에 추가', action: onAddToPlaylist },
     { icon: Heart, label: isLiked ? '좋아요 취소' : '좋아요', action: onLike },
-    { icon: Play, label: '다음에 재생', action: onPlayNext },
     { icon: ListMusic, label: '큐에 추가', action: onAddToQueue },
+    { icon: Play, label: '다음에 재생', action: onPlayNext },
     { icon: User, label: '채널로 이동', action: onGoToChannel },
     { icon: Share2, label: '공유', action: onShare },
     { icon: ExternalLink, label: 'YouTube에서 보기', action: onOpenInYoutube },
@@ -74,7 +76,23 @@ export function TrackContextMenu({
             </div>
           </div>
         </SheetHeader>
-        <div className="py-2">
+
+        {onPlay && (
+          <div className="px-2 pb-1 pt-1">
+            <button
+              onClick={() => {
+                onPlay();
+                onOpenChange(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-foreground text-background text-sm font-medium active:scale-95 transition-transform"
+            >
+              <Play size={16} fill="currentColor" />
+              바로 재생
+            </button>
+          </div>
+        )}
+
+        <div className="py-1">
           {items.map((item) => {
             const typed = item as { icon: typeof Heart; label: string; action?: () => void; destructive?: boolean };
             return (

@@ -17,9 +17,10 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/models/channel', () => ({
-  followChannel: mockFollowChannel,
-  unfollowChannel: mockUnfollowChannel,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    channels: { follow: mockFollowChannel, unfollow: mockUnfollowChannel },
+  },
 }));
 
 import { POST, DELETE } from '../route';

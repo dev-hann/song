@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAudioStreamUrl, markMwebFailed, type AudioStreamResult } from '@/server/services/youtube';
+import { getAudioStreamUrl, markMwebFailed } from '@/server/infrastructure/external/youtube/client';
+import type { AudioStreamResult } from '@/server/domain/ports/providers';
 
 const streamCache = new Map<string, { result: AudioStreamResult; expires: number }>();
 

@@ -6,11 +6,13 @@ import Image from 'next/image';
 import { useMelonChart } from '@/queries';
 import { useAudioStore } from '@/store';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import type { MelonChartItem } from '@/types';
 import type { MelonChartType } from '@/services/api';
 import { searchResultToAudio } from '@/lib/track-adapters';
+import { useTrackContextMenu } from '@/hooks/use-track-context-menu';
 
 const TABS: { key: MelonChartType; label: string }[] = [
   { key: 'realtime', label: '실시간' },
@@ -28,10 +30,17 @@ function ChartItem({
   onPlay: () => void;
 }) {
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onPlay}
-      disabled={isLoading}
-      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl active:bg-white/5 transition-colors disabled:opacity-60"
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onPlay();
+        }
+      }}
+      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl active:bg-white/5 transition-colors ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}
     >
       <span className="w-7 text-right text-sm font-semibold text-muted tabular-nums flex-shrink-0">
         {isLoading ? (
@@ -49,7 +58,7 @@ function ChartItem({
         <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
         <p className="text-xs text-muted truncate">{item.artist}</p>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -66,20 +75,39 @@ export default function MelonChartPage() {
   const { setQueue } = useAudioStore();
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
 
-  const playChart = async (index: number) => {
+  const {
+    contextTrack,
+    contextOpen,
+    setContextOpen,
+    openContext,
+    playNow,
+    addToQueue,
+    playNext,
+    openInYoutube,
+    share,
+  } = useTrackContextMenu();
+
+  const openChartContext = async (index: number) => {
     if (!chart?.length || loadingIndex != null) {return;}
+    const item = chart[index];
     setLoadingIndex(index);
     try {
       const { fetchSearch } = await import('@/services/api');
-      const item = chart[index];
       const results = await fetchSearch(`${item.title} ${item.artist}`);
       if (results.length > 0) {
-        setQueue(results.slice(0, 10).map(searchResultToAudio), 0);
+        const r = results[0];
+        openContext({
+          id: r.id,
+          title: r.title,
+          channel: r.channel.name,
+          thumbnail: r.thumbnail,
+          duration: r.duration,
+        });
       } else {
         toast.error('검색 결과를 찾을 수 없습니다');
       }
     } catch {
-      toast.error('재생 중 오류가 발생했습니다');
+      toast.error('오류가 발생했습니다');
     } finally {
       setLoadingIndex(null);
     }
@@ -183,11 +211,22 @@ export default function MelonChartPage() {
               key={item.rank}
               item={item}
               isLoading={loadingIndex === item.rank - 1}
-              onPlay={() => { playChart(item.rank - 1).catch(() => undefined); }}
+              onPlay={() => { openChartContext(item.rank - 1).catch(() => undefined); }}
             />
           ))}
         </div>
       )}
+
+      <TrackContextMenu
+        open={contextOpen}
+        onOpenChange={setContextOpen}
+        track={contextTrack}
+        onPlay={playNow}
+        onAddToQueue={addToQueue}
+        onPlayNext={playNext}
+        onShare={share}
+        onOpenInYoutube={openInYoutube}
+      />
     </div>
   );
 }

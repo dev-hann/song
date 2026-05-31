@@ -16,8 +16,14 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/models/like', () => ({
-  isLiked: mockIsLiked,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    likes: { check: mockIsLiked },
+  },
+}));
+
+vi.mock('@/server/application/schemas/response', () => ({
+  LikeCheckResponseSchema: { parse: (v: unknown) => v },
 }));
 
 import { GET } from '../route';
@@ -31,7 +37,7 @@ beforeEach(() => {
 
 describe('GET /api/likes/check/:videoId', () => {
   it('returns liked status as true', async () => {
-    mockIsLiked.mockReturnValue(true);
+    mockIsLiked.mockReturnValue({ videoId: 'vid1', liked: true });
 
     const result = await GET(
       new Request('http://localhost/api/likes/check/vid1'),
@@ -43,7 +49,7 @@ describe('GET /api/likes/check/:videoId', () => {
   });
 
   it('returns liked status as false', async () => {
-    mockIsLiked.mockReturnValue(false);
+    mockIsLiked.mockReturnValue({ videoId: 'vid1', liked: false });
 
     const result = await GET(
       new Request('http://localhost/api/likes/check/vid1'),

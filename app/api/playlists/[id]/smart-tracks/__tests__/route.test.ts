@@ -14,9 +14,10 @@ vi.mock('next/server', () => ({
 }));
 
 vi.mock('@/server/auth', () => ({ auth: mockAuth }));
-vi.mock('@/server/models/playlist', () => ({
-  getPlaylistById: mockGetPlaylistById,
-  getSmartPlaylistTracks: mockGetSmartPlaylistTracks,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    playlists: { getById: mockGetPlaylistById, getSmartTracks: mockGetSmartPlaylistTracks },
+  },
 }));
 
 import { GET } from '../route';

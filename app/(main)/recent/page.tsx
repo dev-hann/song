@@ -6,17 +6,14 @@ import { useHistory, useClearHistory } from '@/queries';
 import { TrackItem } from '@/components/ui/track-item';
 import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
 import { AddToPlaylistSheet } from '@/components/ui/add-to-playlist-sheet';
-import { useAudioStore } from '@/store';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { historyToAudio } from '@/lib/track-adapters';
 import { useTrackContextMenu } from '@/hooks/use-track-context-menu';
 
 export default function RecentPage() {
   const router = useRouter();
   const { data: history, isLoading } = useHistory();
   const clearHistory = useClearHistory();
-  const { setQueue } = useAudioStore();
 
   const {
     contextTrack,
@@ -27,15 +24,12 @@ export default function RecentPage() {
     setPlaylistOpen,
     openContext,
     openPlaylist,
+    playNow,
     addToQueue,
     playNext,
     openInYoutube,
+    share,
   } = useTrackContextMenu();
-
-  const handlePlay = (index: number) => {
-    if (!history?.length) {return;}
-    setQueue(history.map(historyToAudio), index);
-  };
 
   const handleClear = async () => {
     try {
@@ -78,7 +72,7 @@ export default function RecentPage() {
         </div>
       ) : (
         <div className="space-y-0.5 px-2">
-          {history?.map((item, i) => (
+          {history?.map((item, _i) => (
             <TrackItem
               key={item.id}
               id={item.videoId}
@@ -86,7 +80,15 @@ export default function RecentPage() {
               channel={item.channel}
               thumbnail={item.thumbnail}
               duration={item.duration}
-              onClick={() => { handlePlay(i); }}
+              onClick={() => {
+                openContext({
+                  id: item.videoId,
+                  title: item.title,
+                  channel: item.channel,
+                  thumbnail: item.thumbnail,
+                  duration: item.duration,
+                });
+              }}
               onMore={() => {
                 openContext({
                    id: item.videoId,
@@ -105,9 +107,11 @@ export default function RecentPage() {
         open={contextOpen}
         onOpenChange={setContextOpen}
         track={contextTrack}
+        onPlay={playNow}
         onAddToPlaylist={openPlaylist}
         onAddToQueue={addToQueue}
         onPlayNext={playNext}
+        onShare={share}
         onOpenInYoutube={openInYoutube}
       />
 

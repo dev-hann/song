@@ -1,12 +1,12 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockAuth, mockGetPlaylistById, mockUpdatePlaylist, mockDeletePlaylist, mockGetLikedVideoIds } = vi.hoisted(() => ({
+const { mockAuth, mockGetPlaylistById, mockUpdatePlaylist, mockDeletePlaylist, mockGetAllLikes } = vi.hoisted(() => ({
   mockAuth: vi.fn(),
   mockGetPlaylistById: vi.fn(),
   mockUpdatePlaylist: vi.fn(),
   mockDeletePlaylist: vi.fn(),
-  mockGetLikedVideoIds: vi.fn(),
+  mockGetAllLikes: vi.fn(),
 }));
 
 vi.mock('next/server', () => ({
@@ -19,14 +19,11 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/models/playlist', () => ({
-  getPlaylistById: mockGetPlaylistById,
-  updatePlaylist: mockUpdatePlaylist,
-  deletePlaylist: mockDeletePlaylist,
-}));
-
-vi.mock('@/server/models/like', () => ({
-  getLikedVideoIds: mockGetLikedVideoIds,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    playlists: { getById: mockGetPlaylistById, update: mockUpdatePlaylist, delete: mockDeletePlaylist },
+    likes: { getAll: mockGetAllLikes },
+  },
 }));
 
 import { GET, PATCH, DELETE } from '../route';
@@ -57,7 +54,7 @@ describe('GET /api/playlists/:id', () => {
   it('returns liked count for system playlist', async () => {
     const systemPlaylist = { id: 'liked-1', name: 'Liked Songs', isSystem: true, trackCount: 0 };
     mockGetPlaylistById.mockReturnValue(systemPlaylist);
-    mockGetLikedVideoIds.mockReturnValue(['vid1', 'vid2', 'vid3']);
+    mockGetAllLikes.mockReturnValue([{ videoId: 'vid1' }, { videoId: 'vid2' }, { videoId: 'vid3' }]);
 
     const result = (await GET(
       new Request('http://localhost/api/playlists/liked-1'),

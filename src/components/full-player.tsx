@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, Pause, ChevronDown, Shuffle, SkipBack, SkipForward, Repeat, Repeat1, Heart, ListMusic, Gauge, MoreVertical, Sparkles } from 'lucide-react';
+import { Play, Pause, ChevronDown, Shuffle, SkipBack, SkipForward, Repeat, Repeat1, Heart, ListMusic, Gauge, MoreVertical, Sparkles, Infinity as InfinityIcon } from 'lucide-react';
 import { useAudioStore } from '@/store';
 import { useAudioElement } from '@/context/audio-context';
 import { useRelatedTracks } from '@/queries';
@@ -8,6 +8,7 @@ import { AudioStatus, RepeatMode } from '@/constants';
 import { formatDuration } from '@/lib/formatters';
 import { searchResultToAudio } from '@/lib/track-adapters';
 import { useLikeToggle } from '@/hooks/use-like-toggle';
+import { audioPlayer } from '@/lib/audio-player';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -38,9 +39,10 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
     repeatMode,
     toggleShuffle,
     shuffle,
+    autoplay,
+    toggleAutoplay,
     playNext,
     playPrevious,
-    setQueue,
     addToQueue,
   } = useAudioStore();
 
@@ -53,21 +55,41 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
   const isLoading = status === AudioStatus.LOADING;
   const [showSpeeds, setShowSpeeds] = useState(false);
   const [activeTab, setActiveTab] = useState<PlayerTab>('controls');
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekValue, setSeekValue] = useState(0);
 
   const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-  const handleSeek = (value: number | readonly number[]) => {
-    if (typeof value === 'number') {
-      seek(value);
-    } else if (Array.isArray(value) && value.length > 0) {
-      seek(value[0] as number);
-    }
+  const sliderValue = isSeeking ? seekValue : currentTime;
+  const displayTime = isSeeking ? seekValue : currentTime;
+
+  const resolveValue = (value: number | readonly number[]): number => {
+    if (typeof value === 'number') {return value;}
+    if (Array.isArray(value) && value.length > 0) {return value[0] as number;}
+    return 0;
+  };
+
+  const handleSeekChange = (value: number | readonly number[]) => {
+    setIsSeeking(true);
+    setSeekValue(resolveValue(value));
+  };
+
+  const handleSeekCommitted = (value: number | readonly number[]) => {
+    seek(resolveValue(value));
+    setIsSeeking(false);
   };
 
   const playRelated = (index: number) => {
     const related = relatedData?.results;
-    if (!related?.length) {return;}
-    setQueue(related.map(searchResultToAudio), index);
+    if (!related?.[index]) {return;}
+    const tracks = related.map(searchResultToAudio);
+    const first = tracks[index];
+    useAudioStore.setState({
+      recommendedQueue: [...tracks.slice(0, index), ...tracks.slice(index + 1)],
+      audio: first,
+      status: AudioStatus.LOADING,
+    });
+    audioPlayer.load(first.id, first).catch(() => undefined);
   };
 
   const addRelatedToQueue = (index: number) => {
@@ -153,15 +175,16 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
             <div className="px-6 pb-6">
               <div className="mb-4">
                 <Slider
-                  value={[currentTime]}
+                  value={[sliderValue]}
                   min={0}
                   max={duration}
                   step={1}
-                  onValueChange={handleSeek}
+                  onValueChange={handleSeekChange}
+                  onValueCommitted={handleSeekCommitted}
                   className="w-full"
                 />
                 <div className="flex justify-between mt-2 text-xs text-muted">
-                  <span>{formatDuration(currentTime)}</span>
+                  <span>{formatDuration(displayTime)}</span>
                   <span>{formatDuration(duration)}</span>
                 </div>
               </div>
@@ -200,6 +223,13 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
                   <Heart
                     size={20}
                     className={isLiked ? 'text-red-500 fill-red-500' : 'text-muted'}
+                  />
+                </button>
+
+                <button onClick={toggleAutoplay} className="p-2 rounded-full active:bg-white/10">
+                  <InfinityIcon
+                    size={20}
+                    className={autoplay ? 'text-foreground' : 'text-muted-foreground'}
                   />
                 </button>
 

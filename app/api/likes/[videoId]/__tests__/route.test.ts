@@ -16,8 +16,10 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/models/like', () => ({
-  removeLike: mockRemoveLike,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    likes: { remove: mockRemoveLike },
+  },
 }));
 
 import { DELETE } from '../route';

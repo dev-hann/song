@@ -6,8 +6,6 @@ const envSchema = z.object({
   AUTH_SECRET: z.string().min(1, 'AUTH_SECRET environment variable is required'),
   GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID environment variable is required'),
   GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET environment variable is required'),
-  GITHUB_TOKEN: z.string().default(''),
-  GITHUB_REPO: z.string().default('dev-hann/song'),
   DATABASE_URL: z.string().default('postgres://song:password@localhost:5432/song'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
@@ -23,8 +21,6 @@ export function getEnv(): z.infer<typeof envSchema> {
     AUTH_SECRET: process.env.AUTH_SECRET,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-    GITHUB_REPO: process.env.GITHUB_REPO,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
   });

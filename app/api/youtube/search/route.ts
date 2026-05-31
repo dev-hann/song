@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getInnertube } from '@/server/services/youtube';
-import { SearchParamsSchema } from '@/server/schemas/api';
-import { SearchResponseSchema, toSearchResponse } from '@/server/models/search';
+import { useCases } from '@/server/application/wiring';
+import { SearchParamsSchema } from '@/server/application/schemas/request';
+import { SearchResponseValidationSchema } from '@/server/application/schemas/response';
 
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
@@ -20,10 +20,8 @@ export async function GET(request: Request) {
   const { q } = paramsResult.data;
 
   try {
-    const innertube = await getInnertube();
-    const search = await innertube.search(q);
-    const searchResponse = toSearchResponse(search, q);
-    const validatedResponse = SearchResponseSchema.parse(searchResponse);
+    const searchResponse = await useCases.audio.search(q);
+    const validatedResponse = SearchResponseValidationSchema.parse(searchResponse);
     return NextResponse.json(validatedResponse);
   } catch (error) {
     console.error('[Search] Error:', error);

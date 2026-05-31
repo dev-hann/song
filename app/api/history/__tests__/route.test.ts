@@ -18,10 +18,14 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/models/history', () => ({
-  getRecentHistory: mockGetRecentHistory,
-  addToHistory: mockAddToHistory,
-  clearHistory: mockClearHistory,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    history: { get: mockGetRecentHistory, add: mockAddToHistory, clear: mockClearHistory },
+  },
+}));
+
+vi.mock('@/server/application/schemas/response', () => ({
+  HistoryResponseSchema: { parse: (v: unknown) => v },
 }));
 
 import { GET, POST, DELETE } from '../route';

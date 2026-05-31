@@ -17,9 +17,10 @@ vi.mock('@/server/auth', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/server/models/playlist', () => ({
-  reorderPlaylistTracks: mockReorderPlaylistTracks,
-  getPlaylistById: mockGetPlaylistById,
+vi.mock('@/server/application/wiring', () => ({
+  useCases: {
+    playlists: { reorder: mockReorderPlaylistTracks, getById: mockGetPlaylistById },
+  },
 }));
 
 import { PUT } from '../route';
