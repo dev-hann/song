@@ -1,12 +1,15 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Loader2, Play } from 'lucide-react';
+import { Loader2, Play } from 'lucide-react';
 import Image from 'next/image';
 import { useMelonChart } from '@/queries';
 import { useAudioStore } from '@/store';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
+import { PageHeader } from '@/components/ui/page-header';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import type { MelonChartItem } from '@/types';
@@ -40,7 +43,10 @@ function ChartItem({
           onPlay();
         }
       }}
-      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl active:bg-white/5 transition-colors ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}
+      className={cn(
+        'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl active:bg-accent transition-colors',
+        isLoading && 'opacity-60 pointer-events-none',
+      )}
     >
       <span className="w-7 text-right text-sm font-semibold text-muted tabular-nums flex-shrink-0">
         {isLoading ? (
@@ -147,31 +153,9 @@ export default function MelonChartPage() {
 
   return (
     <div className="pt-6 pb-4">
-      <div className="px-4 flex items-center gap-3 mb-4">
-        <button onClick={() => { router.back(); }} className="p-2 -ml-2 rounded-full active:bg-white/5">
-          <ArrowLeft size={20} className="text-foreground" />
-        </button>
-      </div>
+      <PageHeader title="멜론 차트" onBack={() => { router.back(); }} />
 
-      <div className="px-4 mb-4">
-        <h1 className="text-xl font-bold text-foreground">멜론 차트</h1>
-      </div>
-
-      <div className="flex gap-1 px-4 mb-4">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => { setActiveTab(tab.key); }}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              activeTab === tab.key
-                ? 'bg-foreground text-background'
-                : 'bg-white/5 text-muted active:text-foreground'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl options={TABS} value={activeTab} onChange={(key) => { setActiveTab(key as MelonChartType); }} size="md" className="px-4 mb-4" />
 
       <div className="px-4 mb-4 flex items-end justify-between">
         <p className="text-xs text-muted">{chart?.length ?? 0}곡</p>

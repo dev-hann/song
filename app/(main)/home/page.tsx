@@ -3,13 +3,14 @@
 import { useHomeData } from '@/queries';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { ChevronRight, Loader2, Sparkles, Music } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { MelonChartItem, SearchResultAudio } from '@/types';
 import type { MelonChartType } from '@/services/api';
-import { formatDuration } from '@/lib/formatters';
+import { TrackCard } from '@/components/ui/track-card';
 import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
 import { useTrackContextMenu } from '@/hooks/use-track-context-menu';
 
@@ -18,34 +19,6 @@ const CHART_TABS: { key: 'chart' | 'hot100' | 'dailyChart'; label: string; type:
   { key: 'hot100', label: 'HOT 100', type: 'hot100' },
   { key: 'dailyChart', label: '일간', type: 'daily' },
 ];
-
-function RecommendationItem({
-  track,
-  onPlay,
-}: {
-  track: SearchResultAudio;
-  onPlay: () => void;
-}) {
-  return (
-    <button
-      onClick={onPlay}
-      className="flex-shrink-0 w-36 active:scale-95 transition-transform"
-    >
-      <div className="w-36 h-36 rounded-xl overflow-hidden bg-surface relative">
-        {track.thumbnail && (
-          <Image src={track.thumbnail} alt={track.title} className="w-full h-full object-cover" loading="lazy" unoptimized width={144} height={144} />
-        )}
-        {track.duration > 0 && (
-          <span className="absolute bottom-1 right-1 text-[10px] bg-black/70 text-white px-1 py-0.5 rounded">
-            {formatDuration(track.duration)}
-          </span>
-        )}
-      </div>
-      <p className="text-xs font-medium text-foreground mt-1.5 line-clamp-2 text-left">{track.title}</p>
-      <p className="text-[11px] text-muted truncate text-left">{track.channel.name}</p>
-    </button>
-  );
-}
 
 function ChartItemRow({
   item,
@@ -58,9 +31,10 @@ function ChartItemRow({
 }) {
   return (
     <button
+      data-testid="chart-item"
       onClick={onPlay}
       disabled={isLoading}
-      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl active:bg-white/5 transition-colors disabled:opacity-60"
+      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl active:bg-accent transition-colors disabled:opacity-60"
     >
       <span className="w-6 text-right text-sm font-semibold text-muted tabular-nums flex-shrink-0">
         {isLoading ? (
@@ -192,10 +166,15 @@ export default function HomePage() {
               </div>
               <div className="flex gap-3 overflow-x-auto hide-scrollbar px-4 -mx-4">
                 {recommendations.fromChart.map((track) => (
-                  <RecommendationItem
+                  <TrackCard
                     key={track.id}
-                    track={track}
-                    onPlay={() => { openRecommendationContext(track); }}
+                    variant="square"
+                    id={track.id}
+                    title={track.title}
+                    channel={track.channel.name}
+                    thumbnail={track.thumbnail}
+                    duration={track.duration}
+                    onClick={() => { openRecommendationContext(track); }}
                   />
                 ))}
               </div>
@@ -210,10 +189,15 @@ export default function HomePage() {
               </div>
               <div className="flex gap-3 overflow-x-auto hide-scrollbar px-4 -mx-4">
                 {recommendations.fromChannels.map((track) => (
-                  <RecommendationItem
+                  <TrackCard
                     key={track.id}
-                    track={track}
-                    onPlay={() => { openRecommendationContext(track); }}
+                    variant="square"
+                    id={track.id}
+                    title={track.title}
+                    channel={track.channel.name}
+                    thumbnail={track.thumbnail}
+                    duration={track.duration}
+                    onClick={() => { openRecommendationContext(track); }}
                   />
                 ))}
               </div>
@@ -228,10 +212,15 @@ export default function HomePage() {
               </div>
               <div className="flex gap-3 overflow-x-auto hide-scrollbar px-4 -mx-4">
                 {recommendations.fromRecent.map((track) => (
-                  <RecommendationItem
+                  <TrackCard
                     key={track.id}
-                    track={track}
-                    onPlay={() => { openRecommendationContext(track); }}
+                    variant="square"
+                    id={track.id}
+                    title={track.title}
+                    channel={track.channel.name}
+                    thumbnail={track.thumbnail}
+                    duration={track.duration}
+                    onClick={() => { openRecommendationContext(track); }}
                   />
                 ))}
               </div>
@@ -294,21 +283,7 @@ export default function HomePage() {
 
       <section className="mb-8">
         <div className="flex items-center justify-between px-4 mb-3">
-          <div className="flex gap-1">
-            {CHART_TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => { setActiveTab(tab.key); }}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  activeTab === tab.key
-                    ? 'bg-foreground text-background'
-                    : 'bg-white/5 text-muted active:text-foreground'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl options={CHART_TABS} value={activeTab} onChange={(key) => { setActiveTab(key as typeof activeTab); }} size="sm" />
           <button
             onClick={() => { router.push(`/chart?type=${activeType}`); }}
             className="flex items-center gap-0.5 text-xs text-muted active:text-foreground"

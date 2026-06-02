@@ -1,11 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
 import { useHistory, useClearHistory } from '@/queries';
 import { TrackItem } from '@/components/ui/track-item';
 import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
 import { AddToPlaylistSheet } from '@/components/ui/add-to-playlist-sheet';
+import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useTrackContextMenu } from '@/hooks/use-track-context-menu';
@@ -42,16 +42,16 @@ export default function RecentPage() {
 
   return (
     <div className="pt-6 pb-4">
-      <div className="px-4 flex items-center justify-between mb-4">
-        <button onClick={() => { router.back(); }} className="p-2 -ml-2 rounded-full active:bg-white/5">
-          <ArrowLeft size={20} className="text-foreground" />
-        </button>
-        {history && history.length > 0 && (
-          <button onClick={() => { handleClear().catch(() => undefined); }} disabled={clearHistory.isPending} className="text-sm text-muted-foreground active:text-foreground disabled:opacity-40">
-            {clearHistory.isPending ? '삭제 중...' : '전체 삭제'}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        onBack={() => { router.back(); }}
+        right={
+          history && history.length > 0 ? (
+            <button onClick={() => { handleClear().catch(() => undefined); }} disabled={clearHistory.isPending} className="text-sm text-muted-foreground active:text-foreground disabled:opacity-40">
+              {clearHistory.isPending ? '삭제 중...' : '전체 삭제'}
+            </button>
+          ) : undefined
+        }
+      />
 
       <div className="px-4 mb-6">
         <h1 className="text-xl font-bold text-foreground">최근 재생</h1>
@@ -89,15 +89,7 @@ export default function RecentPage() {
                   duration: item.duration,
                 });
               }}
-              onMore={() => {
-                openContext({
-                   id: item.videoId,
-                  title: item.title,
-                  channel: item.channel,
-                  thumbnail: item.thumbnail,
-                  duration: item.duration,
-                });
-              }}
+
             />
           ))}
         </div>

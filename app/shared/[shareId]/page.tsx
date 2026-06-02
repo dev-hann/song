@@ -2,10 +2,11 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Play, Shuffle, ArrowLeft } from 'lucide-react';
-import Image from 'next/image';
+import { ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrackItem } from '@/components/ui/track-item';
+import { PlayShuffleButtons } from '@/components/ui/play-shuffle-buttons';
+import { PlaylistCover } from '@/components/ui/playlist-cover';
 import { useAudioStore } from '@/store';
 import { playlistTrackToAudio } from '@/lib/track-adapters';
 import { formatTotalDuration } from '@/lib/formatters';
@@ -63,29 +64,13 @@ export default function SharedPlaylistPage() {
   return (
     <div className="pt-6 pb-4">
       <div className="flex items-center px-4 mb-4">
-        <button onClick={() => { router.back(); }} className="p-2 -ml-2 rounded-full active:bg-white/5">
+        <button onClick={() => { router.back(); }} className="p-2 -ml-2 rounded-full active:bg-accent">
           <ArrowLeft size={20} className="text-foreground" />
         </button>
       </div>
 
       <div className="text-center px-4 mb-6">
-        <div className="w-48 h-48 mx-auto rounded-xl bg-surface flex items-center justify-center mb-4 overflow-hidden">
-          {playlist.coverImage ? (
-            <Image src={playlist.coverImage} alt={playlist.name} className="w-full h-full object-cover" unoptimized width={192} height={192} />
-          ) : (
-            <div className="grid grid-cols-2 gap-0.5 w-full h-full">
-              {playlist.tracks?.slice(0, 4).map((t) => (
-                <div key={t.videoId} className="bg-surface-elevated overflow-hidden">
-                  {t.thumbnail && <Image src={t.thumbnail} alt="" className="w-full h-full object-cover" unoptimized width={96} height={96} />}
-                </div>
-              ))}
-              {(!playlist.tracks || playlist.tracks.length < 4) &&
-                Array.from({ length: Math.max(0, 4 - (playlist.tracks?.length ?? 0)) }).map((_, i) => (
-                  <div key={i} className="bg-surface-elevated" />
-                ))}
-            </div>
-          )}
-        </div>
+        <PlaylistCover coverImage={playlist.coverImage} tracks={playlist.tracks} size="lg" className="mx-auto mb-4" />
         <h1 className="text-xl font-bold text-foreground">{playlist.name}</h1>
         {playlist.description && <p className="text-sm text-muted mt-1">{playlist.description}</p>}
         <p className="text-xs text-muted-foreground mt-1">
@@ -93,23 +78,7 @@ export default function SharedPlaylistPage() {
         </p>
       </div>
 
-      <div className="flex items-center justify-center gap-4 px-4 mb-4">
-        <button
-          onClick={handleShuffle}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 text-sm text-foreground active:bg-white/10"
-        >
-          <Shuffle size={16} />
-          셔플
-        </button>
-        <button
-          onClick={() => { handlePlay(0); }}
-          disabled={!playlist.tracks?.length}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-foreground text-background text-sm font-medium active:scale-95 transition-transform disabled:opacity-40"
-        >
-          <Play size={16} fill="currentColor" />
-          재생
-        </button>
-      </div>
+      <PlayShuffleButtons onPlay={() => { handlePlay(0); }} onShuffle={handleShuffle} disabled={!playlist.tracks?.length} className="px-4 mb-4" />
 
       <div className="space-y-0.5 px-2">
         {playlist.tracks?.map((track, i) => (

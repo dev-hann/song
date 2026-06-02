@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useMemo, useCallback } from 'react';
-import { Play, Shuffle, ArrowLeft, MoreVertical, Pencil, ArrowUpDown, Search, X, Copy, Share2, FolderInput, Zap } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Pencil, ArrowUpDown, Search, X, Copy, Share2, FolderInput, Zap } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -25,8 +25,9 @@ import { SortableTrackItem } from '@/components/ui/sortable-track-item';
 import { CheckboxTrackItem } from '@/components/ui/checkbox-track-item';
 import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
 import { AddToPlaylistSheet } from '@/components/ui/add-to-playlist-sheet';
+import { PlayShuffleButtons } from '@/components/ui/play-shuffle-buttons';
+import { PlaylistCover } from '@/components/ui/playlist-cover';
 import { useAudioStore } from '@/store';
-import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -242,11 +243,11 @@ export default function PlaylistDetailPage() {
   return (
     <div className="pt-6 pb-4">
       <div className="flex items-center justify-between px-4 mb-4">
-        <button onClick={() => { router.back(); }} className="p-2 -ml-2 rounded-full active:bg-white/5">
+        <button onClick={() => { router.back(); }} className="p-2 -ml-2 rounded-full active:bg-accent">
           <ArrowLeft size={20} className="text-foreground" />
         </button>
         <DropdownMenu>
-          <DropdownMenuTrigger className="p-2 -mr-2 rounded-full active:bg-white/5">
+          <DropdownMenuTrigger className="p-2 -mr-2 rounded-full active:bg-accent">
             <MoreVertical size={20} className="text-foreground" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-surface-elevated border-border">
@@ -288,23 +289,7 @@ export default function PlaylistDetailPage() {
       </div>
 
       <div className="text-center px-4 mb-6">
-        <div className="w-48 h-48 mx-auto rounded-xl bg-surface flex items-center justify-center mb-4 overflow-hidden">
-          {playlist.coverImage ? (
-            <Image src={playlist.coverImage} alt={playlist.name} className="w-full h-full object-cover" unoptimized width={192} height={192} />
-          ) : (
-            <div className="grid grid-cols-2 gap-0.5 w-full h-full">
-              {playlist.tracks?.slice(0, 4).map((t) => (
-                <div key={t.videoId} className="bg-surface-elevated overflow-hidden">
-                  {t.thumbnail && <Image src={t.thumbnail} alt="" className="w-full h-full object-cover" unoptimized width={96} height={96} />}
-                </div>
-              ))}
-              {(!playlist.tracks || playlist.tracks.length < 4) &&
-                Array.from({ length: Math.max(0, 4 - (playlist.tracks?.length ?? 0)) }).map((_, i) => (
-                  <div key={i} className="bg-surface-elevated" />
-                ))}
-            </div>
-          )}
-        </div>
+        <PlaylistCover coverImage={playlist.coverImage} tracks={playlist.tracks} size="lg" className="mx-auto mb-4" />
         <h1 className="text-xl font-bold text-foreground">{playlist.name}</h1>
         {playlist.description && <p className="text-sm text-muted mt-1">{playlist.description}</p>}
         <p className="text-xs text-muted-foreground mt-1">
@@ -313,35 +298,19 @@ export default function PlaylistDetailPage() {
         </p>
       </div>
 
-      <div className="flex items-center justify-center gap-4 px-4 mb-4">
-        <button
-          onClick={handleShuffle}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 text-sm text-foreground active:bg-white/10"
-        >
-          <Shuffle size={16} />
-          셔플
-        </button>
-        <button
-          onClick={() => { handlePlay(0); }}
-          disabled={!playlist.tracks?.length}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-foreground text-background text-sm font-medium active:scale-95 transition-transform disabled:opacity-40"
-        >
-          <Play size={16} fill="currentColor" />
-          재생
-        </button>
-      </div>
+      <PlayShuffleButtons onPlay={() => { handlePlay(0); }} onShuffle={handleShuffle} disabled={!playlist.tracks?.length} className="px-4 mb-4" />
 
       {(playlist.tracks?.length ?? 0) > 0 && (
         <div className="flex items-center gap-2 px-4 mb-3">
           {isEditMode ? (
             <>
-              <button onClick={toggleSelectAll} className="text-sm text-muted px-2 py-2 rounded-xl active:bg-white/5">
+               <button onClick={toggleSelectAll} className="text-sm text-muted px-2 py-2 rounded-xl active:bg-accent">
                 {selectedVideoIds.size === displayedTracks.length ? '전체 해제' : '전체 선택'}
               </button>
               <span className="flex-1 text-center text-xs text-muted-foreground">
                 {selectedVideoIds.size}곡 선택됨
               </span>
-              <button onClick={exitEditMode} className="text-sm text-foreground px-2 py-2 rounded-xl active:bg-white/5 font-medium">
+               <button onClick={exitEditMode} className="text-sm text-foreground px-2 py-2 rounded-xl active:bg-accent font-medium">
                 완료
               </button>
             </>
@@ -355,20 +324,20 @@ export default function PlaylistDetailPage() {
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); }}
                   placeholder="트랙 검색"
-                  className="w-full bg-white/5 rounded-xl pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full bg-accent rounded-xl pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
               <button
                 onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
-                className="p-2 rounded-full active:bg-white/5 text-muted"
-              >
-                <X size={18} />
+                 className="p-2 rounded-full active:bg-accent text-muted"
+               >
+                 <X size={18} />
               </button>
             </>
           ) : (
             <>
               <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 text-sm text-muted active:bg-white/10">
+                 <DropdownMenuTrigger className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-accent text-sm text-muted active:bg-secondary">
                   <ArrowUpDown size={14} />
                   {SORT_OPTIONS.find((o) => o.value === sortBy)?.label}
                 </DropdownMenuTrigger>
@@ -387,14 +356,14 @@ export default function PlaylistDetailPage() {
               <div className="flex-1" />
               <button
                 onClick={() => { setSearchOpen(true); }}
-                className="p-2 rounded-full active:bg-white/5 text-muted"
-              >
-                <Search size={18} />
+                 className="p-2 rounded-full active:bg-accent text-muted"
+               >
+                 <Search size={18} />
               </button>
               {!playlist.isSystem && (
                 <button
                   onClick={() => { setIsEditMode(true); }}
-                  className="text-sm text-muted px-3 py-2 rounded-xl active:bg-white/5"
+                   className="text-sm text-muted px-3 py-2 rounded-xl active:bg-accent"
                 >
                   편집
                 </button>
@@ -439,15 +408,6 @@ export default function PlaylistDetailPage() {
                         duration: track.duration,
                       });
                     }}
-                    onMore={() => {
-                      openContext({
-                         id: track.videoId,
-                        title: track.title,
-                        channel: track.channel,
-                        thumbnail: track.thumbnail,
-                        duration: track.duration,
-                      });
-                    }}
                   />
                 ))}
               </SortableContext>
@@ -470,15 +430,6 @@ export default function PlaylistDetailPage() {
                     duration: track.duration,
                   });
                 }}
-                onMore={() => {
-                  openContext({
-                     id: track.videoId,
-                    title: track.title,
-                    channel: track.channel,
-                    thumbnail: track.thumbnail,
-                    duration: track.duration,
-                  });
-                }}
               />
             ))
           )
@@ -493,7 +444,7 @@ export default function PlaylistDetailPage() {
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-surface-elevated border-t border-border p-4 flex gap-3">
           <button
             onClick={() => { setBatchSheetOpen(true); }}
-            className="flex-1 py-3 rounded-xl bg-white/5 text-sm text-foreground font-medium active:bg-white/10"
+            className="flex-1 py-3 rounded-xl bg-accent text-sm text-foreground font-medium active:bg-secondary"
           >
             재생목록에 추가
           </button>

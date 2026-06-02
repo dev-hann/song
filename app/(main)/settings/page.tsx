@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Moon, Sun, Monitor, Trash2, LogOut, User } from 'lucide-react';
+import { Moon, Sun, Monitor, Trash2, LogOut, User } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useSession, signOut } from 'next-auth/react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -42,15 +43,7 @@ export default function SettingsPage() {
 
   return (
     <div className="pt-6 pb-4">
-      <div className="px-4 flex items-center gap-3 mb-6">
-        <button
-          onClick={() => { router.back(); }}
-          className="p-2 -ml-2 rounded-full active:bg-accent"
-        >
-          <ArrowLeft size={20} className="text-foreground" />
-        </button>
-        <h1 className="text-2xl font-bold text-foreground">설정</h1>
-      </div>
+      <PageHeader title="설정" onBack={() => { router.back(); }} />
 
       <section className="px-4 mb-6">
         <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">

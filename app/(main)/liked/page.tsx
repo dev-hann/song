@@ -1,11 +1,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Play, Shuffle, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useLikes, useToggleLike } from '@/queries';
 import { TrackItem } from '@/components/ui/track-item';
 import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
 import { AddToPlaylistSheet } from '@/components/ui/add-to-playlist-sheet';
+import { PlayShuffleButtons } from '@/components/ui/play-shuffle-buttons';
+import { PageHeader } from '@/components/ui/page-header';
 import { useAudioStore } from '@/store';
 import { Skeleton } from '@/components/ui/skeleton';
 import { likeToAudio } from '@/lib/track-adapters';
@@ -46,37 +48,17 @@ export default function LikedPage() {
 
   return (
     <div className="pt-6 pb-4">
-      <div className="px-4 mb-4">
-        <button onClick={() => { router.back(); }} className="p-2 -ml-2 rounded-full active:bg-white/5">
-          <ArrowLeft size={20} className="text-foreground" />
-        </button>
-      </div>
+      <PageHeader onBack={() => { router.back(); }} />
 
       <div className="text-center px-4 mb-6">
         <div className="w-32 h-32 mx-auto rounded-xl bg-gradient-to-br from-purple-600/60 to-blue-600/40 flex items-center justify-center mb-4">
-          <Heart size={48} className="text-white fill-white" />
+          <Heart size={48} className="text-foreground fill-foreground" />
         </div>
         <h1 className="text-xl font-bold text-foreground">좋아요한 곡</h1>
         <p className="text-xs text-muted-foreground mt-1">{likes?.length ?? 0}곡</p>
       </div>
 
-      <div className="flex items-center justify-center gap-4 px-4 mb-6">
-        <button
-          onClick={handleShuffle}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 text-sm text-foreground active:bg-white/10"
-        >
-          <Shuffle size={16} />
-          셔플
-        </button>
-        <button
-          onClick={() => { handlePlay(0); }}
-          disabled={!likes?.length}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-foreground text-background text-sm font-medium active:scale-95 transition-transform disabled:opacity-40"
-        >
-          <Play size={16} fill="currentColor" />
-          재생
-        </button>
-      </div>
+      <PlayShuffleButtons onPlay={() => { handlePlay(0); }} onShuffle={handleShuffle} disabled={!likes?.length} className="px-4 mb-6" />
 
       {isLoading ? (
         <div className="space-y-2 px-4">
@@ -109,15 +91,7 @@ export default function LikedPage() {
                   duration: like.duration,
                 });
               }}
-              onMore={() => {
-                openContext({
-                  id: like.videoId,
-                  title: like.title,
-                  channel: like.channel,
-                  thumbnail: like.thumbnail,
-                  duration: like.duration,
-                });
-              }}
+
             />
           ))}
         </div>

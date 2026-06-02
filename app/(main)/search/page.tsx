@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Search as SearchIcon, X, Clock } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Search as SearchIcon, X, Clock, Loader2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useSearchQuery, useLikeCheck } from '@/queries';
 import { TrackItem } from '@/components/ui/track-item';
@@ -10,6 +10,7 @@ import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
 import { AddToPlaylistSheet } from '@/components/ui/add-to-playlist-sheet';
 import { SearchStatus } from '@/constants';
 import { useTrackContextMenu } from '@/hooks/use-track-context-menu';
+import type { SearchResultAudio } from '@/types';
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -25,7 +26,18 @@ export default function SearchPage() {
   });
   const [shouldSearch, setShouldSearch] = useState(!!initialQuery);
 
-  const { data: results = [], status: queryStatus } = useSearchQuery(shouldSearch ? query : '');
+  const {
+    data,
+    status: queryStatus,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useSearchQuery(shouldSearch ? query : '');
+
+  const results = useMemo(() => {
+    if (!data) {return [];}
+    return data.pages.flatMap((page) => page.results);
+  }, [data]);
 
   const {
     contextTrack,
@@ -64,7 +76,7 @@ export default function SearchPage() {
     setShouldSearch(true);
   };
 
-  const handlePlayTrack = (track: typeof results[0]) => {
+  const handlePlayTrack = (track: SearchResultAudio) => {
     openContext({
       id: track.id,
       title: track.title,
@@ -73,6 +85,25 @@ export default function SearchPage() {
       duration: track.duration,
     });
   };
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const observerCallback = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage().catch((err: unknown) => { console.error('[Search] fetchNextPage failed:', err); });
+      }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage],
+  );
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) {return;}
+    const observer = new IntersectionObserver(observerCallback, { rootMargin: '200px' });
+    observer.observe(sentinel);
+    return () => { observer.disconnect(); };
+  }, [observerCallback]);
 
   return (
     <div className="px-4 pt-6 pb-4">
@@ -89,7 +120,7 @@ export default function SearchPage() {
             if (e.key === 'Enter') {handleSearch();}
           }}
           placeholder="노래, 아티스트 검색..."
-          className="w-full pl-11 pr-10 py-3 bg-white/5 rounded-xl text-foreground placeholder:text-muted text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full pl-11 pr-10 py-3 bg-accent rounded-xl text-foreground placeholder:text-muted text-sm focus:outline-none focus:ring-1 focus:ring-ring"
         />
         {query && (
           <button
@@ -97,7 +128,7 @@ export default function SearchPage() {
               setQuery('');
               setShouldSearch(false);
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full active:bg-white/10"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full active:bg-secondary"
           >
             <X size={16} className="text-muted" />
           </button>
@@ -137,7 +168,7 @@ export default function SearchPage() {
                         setShouldSearch(true);
                       }
                     }}
-                    className="w-full flex items-center justify-between px-3 py-3 rounded-xl active:bg-white/5"
+                    className="w-full flex items-center justify-between px-3 py-3 rounded-xl active:bg-accent"
                   >
                     <div className="flex items-center gap-3">
                       <Clock size={16} className="text-muted-foreground" />
@@ -161,7 +192,7 @@ export default function SearchPage() {
       )}
 
       {shouldSearch && (
-        searchStatus === SearchStatus.LOADING ? (
+        searchStatus === SearchStatus.LOADING && results.length === 0 ? (
           <div className="space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-3 px-2">
@@ -175,7 +206,7 @@ export default function SearchPage() {
           </div>
         ) : results.length > 0 ? (
           <div className="space-y-0.5">
-              {results.map((track, _i) => (
+              {results.map((track) => (
                 <TrackItem
                   key={track.id}
                   id={track.id}
@@ -184,17 +215,14 @@ export default function SearchPage() {
                   thumbnail={track.thumbnail}
                   duration={track.duration}
                   onClick={() => { handlePlayTrack(track); }}
-                  onMore={() => {
-                    openContext({
-                      id: track.id,
-                      title: track.title,
-                      channel: track.channel.name,
-                      thumbnail: track.thumbnail,
-                      duration: track.duration,
-                    });
-                  }}
                 />
               ))}
+              <div ref={sentinelRef} className="h-4" />
+              {isFetchingNextPage && (
+                <div className="flex justify-center py-4">
+                  <Loader2 size={20} className="animate-spin text-muted" />
+                </div>
+              )}
           </div>
         ) : (
           <div className="text-center py-16 text-muted">

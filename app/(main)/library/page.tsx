@@ -80,7 +80,7 @@ export default function LibraryPage() {
         <h1 className="text-2xl font-bold text-foreground">라이브러리</h1>
         <button
           onClick={() => { router.push('/settings'); }}
-          className="p-2 rounded-full active:bg-white/5"
+          className="p-2 rounded-full active:bg-accent"
         >
           <Settings size={20} className="text-muted" />
         </button>
@@ -95,8 +95,8 @@ export default function LibraryPage() {
               className={cn(
                 'px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors',
                 activeFilter === filter
-                  ? 'bg-white/15 text-foreground'
-                  : 'bg-white/5 text-muted active:bg-white/10',
+                  ? 'bg-secondary text-foreground'
+                  : 'bg-accent text-muted active:bg-secondary',
               )}
             >
               {filter}
@@ -110,10 +110,10 @@ export default function LibraryPage() {
           <div className="space-y-1 mb-4">
             <button
               onClick={() => { router.push('/liked'); }}
-              className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-white/5 transition-colors"
+              className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-accent transition-colors"
             >
               <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-600/60 to-blue-600/40 flex items-center justify-center flex-shrink-0">
-                <Heart size={20} className="text-white fill-white" />
+                <Heart size={20} className="text-foreground fill-foreground" />
               </div>
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-sm font-medium text-foreground">좋아요한 곡</p>
@@ -123,10 +123,10 @@ export default function LibraryPage() {
 
             <button
               onClick={() => { router.push('/recent'); }}
-              className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-white/5 transition-colors"
+              className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-accent transition-colors"
             >
               <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-600/60 to-emerald-600/40 flex items-center justify-center flex-shrink-0">
-                <Clock size={20} className="text-white" />
+                <Clock size={20} className="text-foreground" />
               </div>
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-sm font-medium text-foreground">최근 재생</p>
@@ -242,7 +242,7 @@ export default function LibraryPage() {
                         e.preventDefault();
                         handleDeleteFolder(folder.id, folder.name).catch(() => undefined);
                       }}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl active:bg-white/5 transition-colors"
+                      className="w-full flex items-center gap-3 p-3 rounded-xl active:bg-accent transition-colors"
                     >
                       <div className="w-10 h-10 rounded-lg bg-amber-600/20 flex items-center justify-center flex-shrink-0">
                         <FolderOpen size={18} className="text-amber-400" />
@@ -260,7 +260,7 @@ export default function LibraryPage() {
                       <button
                         key={playlist.id}
                         onClick={() => { router.push(`/playlist/${playlist.id}`); }}
-                        className="w-full flex items-center gap-4 pl-10 pr-3 py-2 rounded-xl active:bg-white/5 transition-colors"
+                         className="w-full flex items-center gap-4 pl-10 pr-3 py-2 rounded-xl active:bg-accent transition-colors"
                       >
                         <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center flex-shrink-0 overflow-hidden">
                           {playlist.coverImage ? (
@@ -285,7 +285,7 @@ export default function LibraryPage() {
                   <button
                     key={playlist.id}
                     onClick={() => { router.push(`/playlist/${playlist.id}`); }}
-                    className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-white/5 transition-colors"
+                     className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-accent transition-colors"
                   >
                     <div className="w-12 h-12 rounded-lg bg-surface flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {playlist.coverImage ? (
@@ -313,10 +313,10 @@ export default function LibraryPage() {
         <div className="px-4">
           <button
             onClick={() => { router.push('/liked'); }}
-            className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-white/5 transition-colors"
+            className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-accent transition-colors"
           >
             <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-600/60 to-blue-600/40 flex items-center justify-center flex-shrink-0">
-              <Heart size={20} className="text-white fill-white" />
+              <Heart size={20} className="text-foreground fill-foreground" />
             </div>
             <div className="flex-1 min-w-0 text-left">
               <p className="text-sm font-medium text-foreground">좋아요한 곡</p>
@@ -330,10 +330,10 @@ export default function LibraryPage() {
         <div className="px-4">
           <button
             onClick={() => { router.push('/recent'); }}
-            className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-white/5 transition-colors"
+            className="w-full flex items-center gap-4 p-3 rounded-xl active:bg-accent transition-colors"
           >
             <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-600/60 to-emerald-600/40 flex items-center justify-center flex-shrink-0">
-              <Clock size={20} className="text-white" />
+              <Clock size={20} className="text-foreground" />
             </div>
             <div className="flex-1 min-w-0 text-left">
               <p className="text-sm font-medium text-foreground">최근 재생</p>
