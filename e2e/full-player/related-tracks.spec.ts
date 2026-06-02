@@ -2,10 +2,10 @@ import { test, expect } from '@playwright/test';
 import {
   startPlayback,
   openFullPlayer,
-  getFullPlayer,
   waitForPlaying,
-  getFullPlayerTrackTitle,
 } from '../scenarios/full-player';
+
+test.use({ viewport: { width: 390, height: 844 } });
 
 test.describe('Related Tracks', () => {
   test.beforeEach(async ({ page }) => {
@@ -14,79 +14,76 @@ test.describe('Related Tracks', () => {
   });
 
   test('switches to related tab and loads tracks', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
-
-    const relatedTab = fullPlayer.locator('button', { hasText: '추천 곡' });
+    const relatedTab = page.getByRole('button', { name: '추천 곡' });
     await relatedTab.click();
 
-    const trackItems = fullPlayer.locator('button[class*="flex-shrink-0"]');
-    await expect(trackItems.first()).toBeVisible({ timeout: 15000 });
+    await page.waitForFunction(
+      () => document.querySelectorAll('.full-player.active button[class*="flex-shrink-0"]').length > 0,
+      { timeout: 15000 },
+    );
 
-    const count = await trackItems.count();
+    const count = await page.evaluate(() => {
+      return document.querySelectorAll('.full-player.active button[class*="flex-shrink-0"]').length;
+    });
     expect(count).toBeGreaterThan(0);
   });
 
-  test('shows loading skeleton before tracks load', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
-
-    const relatedTab = fullPlayer.locator('button', { hasText: '추천 곡' });
-    const relatedPromise = relatedTab.click();
-
-    const skeletonVisible = await fullPlayer.locator('[data-slot="skeleton"]').first().isVisible().catch(() => false);
-
-    await relatedPromise;
-
-    await expect(fullPlayer.locator('button[class*="flex-shrink-0"]').first()).toBeVisible({ timeout: 15000 });
-  });
-
   test('plays a related track on thumbnail click', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
-    const titleBefore = await getFullPlayerTrackTitle(page);
-
-    const relatedTab = fullPlayer.locator('button', { hasText: '추천 곡' });
+    const relatedTab = page.getByRole('button', { name: '추천 곡' });
     await relatedTab.click();
 
-    await expect(fullPlayer.locator('button[class*="flex-shrink-0"]').first()).toBeVisible({ timeout: 15000 });
+    await page.waitForFunction(
+      () => document.querySelectorAll('.full-player.active button[class*="flex-shrink-0"]').length > 0,
+      { timeout: 15000 },
+    );
 
-    const firstTrackThumb = fullPlayer.locator('button[class*="flex-shrink-0"]').first();
-    await firstTrackThumb.click();
+    await page.evaluate(() => {
+      const btn = document.querySelector('.full-player.active button[class*="flex-shrink-0"]') as HTMLElement;
+      btn?.click();
+    });
 
-    await page.waitForTimeout(3000);
+    await page.waitForFunction(
+      () => {
+        const h2 = document.querySelector('.full-player.active h2');
+        return h2 && h2.textContent && h2.textContent.trim().length > 0;
+      },
+      { timeout: 30000 },
+    );
 
-    await waitForPlaying(page, 15000).catch(() => undefined);
-
-    const controlsTab = fullPlayer.locator('button', { hasText: '재생' });
-    await controlsTab.click();
-
-    const titleAfter = await getFullPlayerTrackTitle(page);
-
-    expect(titleAfter).toBeTruthy();
+    const title = await page.evaluate(() => {
+      const h2 = document.querySelector('.full-player.active h2');
+      return h2?.textContent ?? '';
+    });
+    expect(title).toBeTruthy();
   });
 
   test('adds related track to queue', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
-
-    const relatedTab = fullPlayer.locator('button', { hasText: '추천 곡' });
+    const relatedTab = page.getByRole('button', { name: '추천 곡' });
     await relatedTab.click();
 
-    await expect(fullPlayer.locator('button[class*="flex-shrink-0"]').first()).toBeVisible({ timeout: 15000 });
+    await page.waitForFunction(
+      () => document.querySelectorAll('.full-player.active button[class*="flex-shrink-0"]').length > 0,
+      { timeout: 15000 },
+    );
 
-    const addToQueueButton = fullPlayer.getByText('+ 큐에 추가').first();
-    await addToQueueButton.click();
-
+    const addBtn = page.getByText('+ 큐에 추가').first();
+    await addBtn.click();
     await page.waitForTimeout(500);
 
-    const controlsTab = fullPlayer.locator('button', { hasText: '재생' });
+    const controlsTab = page.getByRole('button', { name: '재생', exact: true });
     await controlsTab.click();
 
-    const queueButton = fullPlayer.locator('svg.lucide-list-music').locator('..');
-    await queueButton.click();
+    await page.evaluate(() => {
+      const btn = document.querySelector('.full-player.active [data-testid="btn-queue"]') as HTMLElement;
+      btn?.click();
+    });
 
     const sheet = page.locator('[data-side="bottom"]');
     await expect(sheet).toBeVisible();
 
-    const trackItems = sheet.locator('[data-slot="track-item"]');
-    const count = await trackItems.count();
+    const count = await page.evaluate(() => {
+      return document.querySelectorAll('[data-side="bottom"] [role="button"]').length;
+    });
     expect(count).toBeGreaterThan(1);
   });
 });

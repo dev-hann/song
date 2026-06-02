@@ -2,60 +2,58 @@ import { test, expect } from '@playwright/test';
 import {
   startPlayback,
   openFullPlayer,
-  closeFullPlayer,
   getFullPlayer,
+  waitForPlaying,
+  clickTestId,
 } from '../scenarios/full-player';
+
+test.use({ viewport: { width: 390, height: 844 } });
 
 test.describe('Like Toggle', () => {
   test.beforeEach(async ({ page }) => {
     await startPlayback(page);
     await openFullPlayer(page);
+    await waitForPlaying(page);
   });
 
   test('toggles like on and off in full player', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
+    const heartIcon = page.locator('.full-player.active [data-testid="btn-like"] svg');
 
-    const likeButton = fullPlayer.locator('button svg.lucide-heart').locator('..');
+    const classBefore = await heartIcon.evaluate(el => el.getAttribute('class') ?? '');
+    expect(classBefore).toContain('text-muted');
 
-    const heartBefore = fullPlayer.locator('svg.lucide-heart');
-    const classBefore = await heartBefore.getAttribute('class');
+    await clickTestId(page, 'btn-like');
+    await page.waitForTimeout(1500);
 
-    await likeButton.click();
-    await page.waitForTimeout(1000);
+    const classAfter = await heartIcon.evaluate(el => el.getAttribute('class') ?? '');
+    expect(classAfter).toContain('fill-red-500');
 
-    const heartAfter = fullPlayer.locator('svg.lucide-heart');
-    const classAfter = await heartAfter.getAttribute('class');
+    await clickTestId(page, 'btn-like');
+    await page.waitForTimeout(1500);
 
-    expect(classBefore).not.toBe(classAfter);
-
-    await likeButton.click();
-    await page.waitForTimeout(1000);
-
-    const heartRestored = fullPlayer.locator('svg.lucide-heart');
-    const classRestored = await heartRestored.getAttribute('class');
-
-    expect(classRestored).not.toBe(classAfter);
+    const classRestored = await heartIcon.evaluate(el => el.getAttribute('class') ?? '');
+    expect(classRestored).toContain('text-muted');
+    expect(classRestored).not.toContain('fill-red-500');
   });
 
   test('syncs like state with mini player', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
+    await clickTestId(page, 'btn-like');
+    await page.waitForTimeout(1500);
 
-    const likeButton = fullPlayer.locator('button svg.lucide-heart').locator('..');
-    await likeButton.click();
-    await page.waitForTimeout(1000);
+    const isLikedInFull = await page.evaluate(() => {
+      const svg = document.querySelector('.full-player.active [data-testid="btn-like"] svg');
+      return svg?.classList.contains('fill-red-500') ?? false;
+    });
+    expect(isLikedInFull).toBe(true);
 
-    const isLikedInFull = await fullPlayer.locator('svg.lucide-heart').getAttribute('class');
+    await clickTestId(page, 'btn-close');
+    await page.waitForTimeout(500);
 
-    await closeFullPlayer(page);
-
-    const playerBar = page.locator('.player-bar');
-    await expect(playerBar).toBeVisible();
-
-    const isLikedInMini = await playerBar.locator('svg.lucide-heart').getAttribute('class');
-
-    const fullLiked = isLikedInFull?.includes('fill-red') ?? false;
-    const miniLiked = isLikedInMini?.includes('fill-red') ?? false;
-
-    expect(fullLiked).toBe(miniLiked);
+    const isLikedInMini = await page.evaluate(() => {
+      const bar = document.querySelector('.player-bar');
+      const svg = bar?.querySelector('svg.lucide-heart');
+      return svg?.classList.contains('fill-red-500') ?? false;
+    });
+    expect(isLikedInMini).toBe(isLikedInFull);
   });
 });

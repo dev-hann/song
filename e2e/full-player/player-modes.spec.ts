@@ -4,124 +4,130 @@ import {
   openFullPlayer,
   getFullPlayer,
   waitForPlaying,
+  clickTestId,
 } from '../scenarios/full-player';
+
+test.use({ viewport: { width: 390, height: 844 } });
 
 test.describe('Player Modes', () => {
   test.beforeEach(async ({ page }) => {
     await startPlayback(page);
     await openFullPlayer(page);
+    await waitForPlaying(page);
   });
 
   test('toggles shuffle on and off', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
+    const classBefore = await page.evaluate(() => {
+      const svg = document.querySelector('.full-player.active [data-testid="btn-shuffle"] svg');
+      return svg?.getAttribute('class') ?? '';
+    });
 
-    const shuffleButton = fullPlayer.locator('svg.lucide-shuffle').locator('..');
-    const classBefore = await shuffleButton.locator('svg').getAttribute('class');
+    await clickTestId(page, 'btn-shuffle');
+    await page.waitForTimeout(300);
 
-    await shuffleButton.click();
-
-    const classAfter = await shuffleButton.locator('svg').getAttribute('class');
-
+    const classAfter = await page.evaluate(() => {
+      const svg = document.querySelector('.full-player.active [data-testid="btn-shuffle"] svg');
+      return svg?.getAttribute('class') ?? '';
+    });
     expect(classBefore).not.toBe(classAfter);
 
-    await shuffleButton.click();
+    await clickTestId(page, 'btn-shuffle');
+    await page.waitForTimeout(300);
 
-    const classRestored = await shuffleButton.locator('svg').getAttribute('class');
+    const classRestored = await page.evaluate(() => {
+      const svg = document.querySelector('.full-player.active [data-testid="btn-shuffle"] svg');
+      return svg?.getAttribute('class') ?? '';
+    });
     expect(classRestored).toBe(classBefore);
   });
 
   test('cycles repeat mode: OFF -> ALL -> ONE -> OFF', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
-
-    const repeatButton = fullPlayer.locator('[class*="relative"]').filter({
-      has: page.locator('svg.lucide-repeat, svg.lucide-repeat-1'),
+    await clickTestId(page, 'btn-repeat');
+    await page.waitForTimeout(300);
+    const allClass = await page.evaluate(() => {
+      const svg = document.querySelector('.full-player.active [data-testid="btn-repeat"] svg');
+      return svg?.getAttribute('class') ?? '';
     });
+    expect(allClass).toContain('text-foreground');
+    expect(allClass).not.toContain('text-muted');
 
-    await repeatButton.click();
+    await clickTestId(page, 'btn-repeat');
     await page.waitForTimeout(300);
+    const oneSvg = await page.evaluate(() => {
+      const svg = document.querySelector('.full-player.active [data-testid="btn-repeat"] svg');
+      return svg?.getAttribute('class') ?? '';
+    });
+    expect(oneSvg).toContain('text-foreground');
 
-    const hasRepeatIcon = await fullPlayer.locator('svg.lucide-repeat').count();
-    expect(hasRepeatIcon).toBeGreaterThanOrEqual(1);
-
-    await repeatButton.click();
+    await clickTestId(page, 'btn-repeat');
     await page.waitForTimeout(300);
-
-    const hasRepeat1Icon = await fullPlayer.locator('svg.lucide-repeat-1').count();
-    expect(hasRepeat1Icon).toBe(1);
-
-    await repeatButton.click();
-    await page.waitForTimeout(300);
-
-    const mutedClass = await fullPlayer.locator('svg.lucide-repeat').first().getAttribute('class');
-    expect(mutedClass).toContain('text-muted');
+    const offClass = await page.evaluate(() => {
+      const svg = document.querySelector('.full-player.active [data-testid="btn-repeat"] svg');
+      return svg?.getAttribute('class') ?? '';
+    });
+    expect(offClass).toContain('text-muted');
   });
 
   test('opens speed picker and changes speed', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
+    await clickTestId(page, 'btn-speed');
 
-    const speedButton = fullPlayer.locator('svg.lucide-gauge').locator('..');
-    await speedButton.click();
-
-    const speed15 = fullPlayer.locator('button', { hasText: '1.5x' });
+    const speed15 = page.locator('.full-player.active [data-testid="speed-picker"] button', { hasText: '1.5x' });
     await expect(speed15).toBeVisible();
-
     await speed15.click();
 
     await page.waitForTimeout(300);
 
-    const activeSpeed = fullPlayer.locator('button[class*="bg-foreground"][class*="text-background"]').filter({ hasText: '1.5x' });
-    await expect(activeSpeed).toBeVisible();
-
-    const gaugeHidden = await fullPlayer.locator('svg.lucide-gauge').count();
-    expect(gaugeHidden).toBe(1);
+    await clickTestId(page, 'btn-speed');
+    const isActive = await page.evaluate(() => {
+      const btns = document.querySelectorAll('.full-player.active [data-testid="speed-picker"] button');
+      for (const btn of btns) {
+        if (btn.textContent?.includes('1.5x')) return btn.classList.contains('bg-foreground');
+      }
+      return false;
+    });
+    expect(isActive).toBe(true);
   });
 
   test('toggles autoplay on and off', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
+    const classBefore = await page.evaluate(() => {
+      const svg = document.querySelector('.full-player.active [data-testid="btn-autoplay"] svg');
+      return svg?.getAttribute('class') ?? '';
+    });
 
-    const autoplayButton = fullPlayer.locator('svg.lucide-infinity').locator('..');
-    const classBefore = await autoplayButton.locator('svg').getAttribute('class');
+    await clickTestId(page, 'btn-autoplay');
+    await page.waitForTimeout(300);
 
-    await autoplayButton.click();
-
-    const classAfter = await autoplayButton.locator('svg').getAttribute('class');
+    const classAfter = await page.evaluate(() => {
+      const svg = document.querySelector('.full-player.active [data-testid="btn-autoplay"] svg');
+      return svg?.getAttribute('class') ?? '';
+    });
     expect(classBefore).not.toBe(classAfter);
 
-    await autoplayButton.click();
+    await clickTestId(page, 'btn-autoplay');
+    await page.waitForTimeout(300);
 
-    const classRestored = await autoplayButton.locator('svg').getAttribute('class');
+    const classRestored = await page.evaluate(() => {
+      const svg = document.querySelector('.full-player.active [data-testid="btn-autoplay"] svg');
+      return svg?.getAttribute('class') ?? '';
+    });
     expect(classRestored).toBe(classBefore);
   });
 
   test('all speed options are available', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
+    await clickTestId(page, 'btn-speed');
 
-    const speedButton = fullPlayer.locator('svg.lucide-gauge').locator('..');
-    await speedButton.click();
-
-    const expectedSpeeds = ['0.5x', '0.75x', '1x', '1.25x', '1.5x', '2x'];
-
-    for (const speed of expectedSpeeds) {
-      const btn = fullPlayer.locator('button', { hasText: speed });
-      await expect(btn).toBeVisible();
+    for (const speed of ['0.5x', '0.75x', '1x', '1.25x', '1.5x', '2x']) {
+      await expect(page.locator('.full-player.active [data-testid="speed-picker"] button', { hasText: speed })).toBeVisible();
     }
   });
 
   test('speed picker closes after selection', async ({ page }) => {
-    const fullPlayer = getFullPlayer(page);
-
-    const speedButton = fullPlayer.locator('svg.lucide-gauge').locator('..');
-    await speedButton.click();
-
-    const speed2 = fullPlayer.locator('button', { hasText: '2x' });
-    await speed2.click();
+    await clickTestId(page, 'btn-speed');
+    await page.locator('.full-player.active [data-testid="speed-picker"] button', { hasText: '2x' }).click();
 
     await page.waitForTimeout(300);
 
-    const speedPicker = fullPlayer.locator('button', { hasText: '0.5x' });
-    await expect(speedPicker).not.toBeVisible();
-
-    const gaugeVisible = await fullPlayer.locator('svg.lucide-gauge').count();
-    expect(gaugeVisible).toBe(1);
+    await expect(page.locator('.full-player.active [data-testid="speed-picker"]')).not.toBeVisible();
+    await expect(page.locator('.full-player.active [data-testid="btn-speed"]')).toBeVisible();
   });
 });

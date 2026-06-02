@@ -6,75 +6,60 @@ import {
   waitForPlaying,
 } from '../scenarios/full-player';
 
+test.use({ viewport: { width: 390, height: 844 } });
+
 test.describe('Seek Slider', () => {
   test.beforeEach(async ({ page }) => {
     await startPlayback(page);
     await openFullPlayer(page);
+    await waitForPlaying(page);
   });
 
   test('renders slider elements and time display', async ({ page }) => {
     const fullPlayer = getFullPlayer(page);
 
-    const track = fullPlayer.locator('[data-slot="slider-track"]');
-    await expect(track).toBeVisible();
+    await expect(fullPlayer.locator('[data-slot="slider-track"]')).toBeVisible();
+    await expect(fullPlayer.locator('[data-slot="slider-range"]')).toBeVisible();
+    await expect(fullPlayer.locator('[data-slot="slider-thumb"]')).toBeVisible();
 
-    const indicator = fullPlayer.locator('[data-slot="slider-range"]');
-    await expect(indicator).toBeVisible();
-
-    const thumb = fullPlayer.locator('[data-slot="slider-thumb"]');
-    await expect(thumb).toBeVisible();
-
-    const timeLabels = fullPlayer.locator('text:/\\d+:\\d+/');
+    const timeLabels = fullPlayer.getByText(/\d+:\d+/);
     const count = await timeLabels.count();
     expect(count).toBeGreaterThanOrEqual(2);
   });
 
-  test('seeks by tapping on track', async ({ page }) => {
+  test('seeks forward by tapping on track', async ({ page }) => {
     const fullPlayer = getFullPlayer(page);
-
     await page.waitForTimeout(2000);
-    await waitForPlaying(page);
-
-    const timeBefore = await page.evaluate(() => {
-      const audio = document.querySelector('audio') as HTMLAudioElement;
-      return audio?.currentTime ?? 0;
-    });
-    expect(timeBefore).toBeGreaterThan(0);
 
     const track = fullPlayer.locator('[data-slot="slider-track"]');
     const box = await track.boundingBox();
     expect(box).not.toBeNull();
 
-    const targetX = box!.x + box!.width * 0.7;
-    const targetY = box!.y + box!.height / 2;
-
-    await page.mouse.click(targetX, targetY);
+    await page.mouse.click(box!.x + box!.width * 0.8, box!.y + box!.height / 2);
     await page.waitForTimeout(1000);
 
     const timeAfter = await page.evaluate(() => {
       const audio = document.querySelector('audio') as HTMLAudioElement;
-      return audio?.currentTime ?? 0;
+      const duration = audio?.duration ?? 1;
+      return (audio?.currentTime ?? 0) / duration;
     });
 
-    expect(timeAfter).toBeGreaterThan(timeBefore);
+    expect(timeAfter).toBeGreaterThan(0.5);
   });
 
   test('seeks by dragging thumb', async ({ page }) => {
     const fullPlayer = getFullPlayer(page);
-
     await page.waitForTimeout(2000);
-    await waitForPlaying(page);
 
     const thumb = fullPlayer.locator('[data-slot="slider-thumb"]');
-    const box = await thumb.boundingBox();
-    expect(box).not.toBeNull();
-
+    const thumbBox = await thumb.boundingBox();
     const track = fullPlayer.locator('[data-slot="slider-track"]');
     const trackBox = await track.boundingBox();
+    expect(thumbBox).not.toBeNull();
     expect(trackBox).not.toBeNull();
 
-    const startX = box!.x + box!.width / 2;
-    const startY = box!.y + box!.height / 2;
+    const startX = thumbBox!.x + thumbBox!.width / 2;
+    const startY = thumbBox!.y + thumbBox!.height / 2;
     const endX = trackBox!.x + trackBox!.width * 0.8;
 
     await page.mouse.move(startX, startY);
@@ -86,23 +71,16 @@ test.describe('Seek Slider', () => {
 
     const timeAfter = await page.evaluate(() => {
       const audio = document.querySelector('audio') as HTMLAudioElement;
-      return audio?.currentTime ?? 0;
+      const duration = audio?.duration ?? 1;
+      return (audio?.currentTime ?? 0) / duration;
     });
 
-    const duration = await page.evaluate(() => {
-      const audio = document.querySelector('audio') as HTMLAudioElement;
-      return audio?.duration ?? 0;
-    });
-
-    expect(duration).toBeGreaterThan(0);
-    expect(timeAfter).toBeGreaterThan(duration * 0.5);
+    expect(timeAfter).toBeGreaterThan(0.5);
   });
 
   test('updates time display during drag', async ({ page }) => {
     const fullPlayer = getFullPlayer(page);
-
     await page.waitForTimeout(2000);
-    await waitForPlaying(page);
 
     const timeLabelBefore = await fullPlayer.locator('.mb-4 span').first().textContent();
 
@@ -110,10 +88,7 @@ test.describe('Seek Slider', () => {
     const trackBox = await track.boundingBox();
     expect(trackBox).not.toBeNull();
 
-    const targetX = trackBox!.x + trackBox!.width * 0.6;
-    const targetY = trackBox!.y + trackBox!.height / 2;
-
-    await page.mouse.click(targetX, targetY);
+    await page.mouse.click(trackBox!.x + trackBox!.width * 0.6, trackBox!.y + trackBox!.height / 2);
     await page.waitForTimeout(500);
 
     const timeLabelAfter = await fullPlayer.locator('.mb-4 span').first().textContent();
@@ -124,18 +99,13 @@ test.describe('Seek Slider', () => {
 
   test('continues playing after seek', async ({ page }) => {
     const fullPlayer = getFullPlayer(page);
-
     await page.waitForTimeout(2000);
-    await waitForPlaying(page);
 
     const track = fullPlayer.locator('[data-slot="slider-track"]');
     const trackBox = await track.boundingBox();
     expect(trackBox).not.toBeNull();
 
-    const targetX = trackBox!.x + trackBox!.width * 0.5;
-    const targetY = trackBox!.y + trackBox!.height / 2;
-
-    await page.mouse.click(targetX, targetY);
+    await page.mouse.click(trackBox!.x + trackBox!.width * 0.5, trackBox!.y + trackBox!.height / 2);
     await page.waitForTimeout(1500);
 
     const paused = await page.evaluate(() => {

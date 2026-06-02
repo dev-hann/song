@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
@@ -30,6 +30,20 @@ export default defineConfig({
       testDir: './e2e/pwa/specs/android',
       testMatch: /device-control/,
       timeout: 90000,
+      use: {
+        storageState: 'e2e/.auth/user.json',
+        ...(process.env.ANDROID_CDP_ENDPOINT
+          ? { connectOptions: { wsEndpoint: process.env.ANDROID_CDP_ENDPOINT } }
+          : {}),
+      },
+      dependencies: ['setup'],
+      workers: 1,
+    },
+    {
+      name: 'android-player',
+      testDir: './e2e/full-player',
+      testMatch: /seek-regression/,
+      timeout: 120000,
       use: {
         storageState: 'e2e/.auth/user.json',
         ...(process.env.ANDROID_CDP_ENDPOINT

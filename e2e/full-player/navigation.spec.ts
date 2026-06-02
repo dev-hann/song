@@ -5,7 +5,10 @@ import {
   closeFullPlayer,
   getFullPlayer,
   waitForPlaying,
+  clickTestId,
 } from '../scenarios/full-player';
+
+test.use({ viewport: { width: 390, height: 844 } });
 
 test.describe('Full Player Navigation', () => {
   test.beforeEach(async ({ page }) => {
@@ -17,7 +20,6 @@ test.describe('Full Player Navigation', () => {
 
     const fullPlayer = getFullPlayer(page);
     await expect(fullPlayer).toBeVisible();
-
     await expect(fullPlayer.locator('h2')).toBeVisible();
     await expect(fullPlayer.locator('h2')).not.toBeEmpty();
   });
@@ -38,12 +40,12 @@ test.describe('Full Player Navigation', () => {
     await openFullPlayer(page);
     const fullPlayer = getFullPlayer(page);
 
-    const relatedTab = fullPlayer.locator('button', { hasText: '추천 곡' });
+    const relatedTab = fullPlayer.getByRole('button', { name: '추천 곡' });
     await relatedTab.click();
 
-    await expect(fullPlayer.getByText('추천 곡', { exact: true })).toBeVisible();
+    await expect(fullPlayer.getByRole('heading', { name: '추천 곡' })).toBeVisible();
 
-    const controlsTab = fullPlayer.locator('button', { hasText: '재생' });
+    const controlsTab = fullPlayer.getByRole('button', { name: '재생', exact: true });
     await controlsTab.click();
 
     await expect(fullPlayer.locator('h2')).toBeVisible();
@@ -51,16 +53,14 @@ test.describe('Full Player Navigation', () => {
 
   test('opens and closes queue sheet', async ({ page }) => {
     await openFullPlayer(page);
-    const fullPlayer = getFullPlayer(page);
 
-    const queueButton = fullPlayer.locator('svg.lucide-list-music').locator('..');
-    await queueButton.click();
+    await clickTestId(page, 'btn-queue');
 
     const sheet = page.locator('[data-side="bottom"]');
     await expect(sheet).toBeVisible();
 
-    const backdrop = page.locator('[data-side="bottom"]').locator('..').locator('div').first();
-    await backdrop.click();
+    const overlay = page.locator('[data-slot="sheet-overlay"]');
+    await overlay.click();
     await page.waitForTimeout(500);
 
     await expect(sheet).not.toBeVisible();
