@@ -418,6 +418,7 @@ Auth: Auth.js session cookies (protected routes marked with 🔒, enforced by `p
 | GET | `/api/youtube/audio/info` | Video info |
 | GET | `/api/youtube/audio/stream/:id` | Proxy audio stream (Range support) |
 | GET | `/api/youtube/audio/related` | Related videos |
+| GET | `/api/youtube/audio/lyrics` | Get timed lyrics for a video |
 | GET | `/api/shared/:shareId` | Shared playlist |
 
 ### Protected Routes 🔒

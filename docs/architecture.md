@@ -279,3 +279,45 @@ src/components/ → UI 컴포넌트
 - 인라인 트랙 매핑 금지 (`track-adapters.ts` 사용)
 - 체인드 `.where()` 금지 (`and()` 사용)
 - 불필요한 주석 금지
+
+---
+
+## 크로스 도메인 캐시 정책
+
+### 클라이언트 TanStack Query
+
+| 영역 | staleTime | invalidation |
+|------|-----------|-------------|
+| Likes 목록/상태 | 기본 | 좋아요 토글 시 즉시 무효화 |
+| History | 기본 | history 추가 시 무효화 |
+| Playlists/Folders | 기본 | 변경 시 즉시 무효화 |
+| Home | 기본 | **무효화 안 됨** — staleTime에만 의존 |
+| Recommendations | 기본 | **무효화 안 됨** — staleTime에만 의존 |
+| Search | 기본 | N/A (사용자 액션마다 새 요청) |
+
+- Library 변형(좋아요, 재생)이 Discovery 데이터(홈 추천)에 **즉시 반영되지 않음**
+- 피드백 루프(재생→기록→추천)의 가시성은 캐시 만료 시점까지 지연
+
+### 서비스 워커 런타임 캐시
+
+| 패턴 | 전략 | 타임아웃 | Max Age | Max Entries |
+|------|------|---------|---------|-------------|
+| `/api/melon/chart` | StaleWhileRevalidate | — | 30분 | 10 |
+| `/api/youtube/search` | CacheFirst | — | 5분 | 50 |
+| `/api/(home\|recommendations)` | NetworkFirst | 3초 | 5분 | 30 |
+| `/api/(playlists\|likes\|history\|channels)` | NetworkFirst | 3초 | 5분 | 100 |
+| `/api/youtube/audio/stream/*` | **캐시 안 함** | — | — | — |
+
+- 오디오 스트리밍은 네트워크 필수 — 오프라인에서 재생 불가
+- 검색 결과는 최대 5분간 캐시된 결과를 우선 반환
+
+---
+
+## 에러 처리 전략
+
+| 레이어 | 전략 | 비고 |
+|--------|------|------|
+| API 라우트 | `handleErrors` 래퍼 | 500 fallback |
+| 외부 API (Melon/YouTube) | `.catch(() => [])` | 빈 결과로 graceful degrade |
+| 오디오 재생 | 최대 2회 재시도 후 ERROR 상태 | 사용자에게 재생 실패 알림 |
+| 클라이언트 페이지 | **에러 바운더리 미적용** | 렌더링 에러 시 전체 앱 크래시 가능 |

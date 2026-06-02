@@ -17,14 +17,14 @@
 │  │ • User   │  │ • Likes  │  │ • Player  │  │ • Search  │ │
 │  │ • OAuth  │  │ • History│  │ • Queue   │  │ • Melon   │ │
 │  │ • Session│  │ • Play-  │  │ • Stream  │  │ • Recom-  │ │
-│  │ • Route  │  │   lists  │  │ • Media   │  │   mend    │ │
-│  │   Guard  │  │ • Chan-  │  │   Session │  │ • Onboard │ │
-│  │          │  │   nels   │  │           │  │ • Home    │ │
+│  │ • Route  │  │   lists  │  │ • Lyrics  │  │   mend    │ │
+│  │   Guard  │  │ • Chan-  │  │ • Media   │  │ • Home    │ │
+│  │          │  │   nels   │  │   Session │  │           │ │
 │  └──────────┘  └──────────┘  └───────────┘  └───────────┘ │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────────┐│
 │  │           Infrastructure                                 ││
-│  │  • Cache Policies  • DTO Layer                           ││
+│  │  • Cache Policies  • DTO Layer  • Audio Content Filter  ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -36,8 +36,20 @@
 | Auth → 모든 Context | 모든 기능은 인증된 User 기반 |
 | Library → Playback | 좋아요/재생목록 트랙을 큐에 로드 |
 | Library → Discovery | likes + history를 추천 입력으로 사용 |
+| Playback → Library | 풀 플레이어에서 좋아요 토글, 재생 시 자동 history 기록 |
 | Playback → Discovery | 큐 소진 시 관련 영상 자동 로드 (autoplay) |
-| Discovery → Library | 온보딩 시 likes + follows 시딩 |
+| Discovery → Playback | 멜론 차트 항목 탭 시 YouTube 검색으로 실시간 해석 후 재생 |
+
+### 피드백 루프
+
+재생 → 기록 → 추천 → 재생의 자동 순환 루프가 존재:
+
+1. 트랙이 `PLAYING` 상태가 되면 자동으로 history에 기록됨
+2. 추천 엔진은 history의 최근 50개(채널 기반) + 최근 3개(관련 영상)를 입력으로 사용
+3. 홈 화면 추천 섹션에 반영
+4. 사용자가 추천 곡을 재생하면 다시 1번으로
+
+- 피드백 반영에는 지연이 있음 — 홈 데이터는 staleTime에 의존하며, 좋아요/재생 변경이 홈 추천을 즉시 갱신하지 않음
 
 ---
 
@@ -62,13 +74,13 @@
 
 | File | Description |
 |------|-------------|
-| [playback.md](playback.md) | 오디오 재생 상태머신, 큐 관리, 스트리밍 프록시, MediaSession |
+| [playback.md](playback.md) | 오디오 재생 상태머신, 큐 관리, 스트리밍 프록시, 가사, MediaSession |
 
 ### Discovery Context
 
 | File | Description |
 |------|-------------|
-| [discovery.md](discovery.md) | 검색, 멜론 차트, 추천 엔진, 온보딩, 홈 화면 집계 |
+| [discovery.md](discovery.md) | 검색, 멜론 차트, 추천 엔진, 홈 화면 집계 |
 
 ### Shared
 

@@ -24,3 +24,8 @@ SONG Player 도메인에서 사용하는 공통 용어를 정의한다.
 | **ChannelInfo** | YouTube 채널 상세 정보. 팔로우 여부 포함 |
 | **AudioStatus** | 오디오 재생 상태머신 (idle/loading/playing/paused/error) |
 | **RepeatMode** | 반복 재생 모드 (off/all/one) |
+| **Lyrics** | YouTube 영상의 타임드 가사. 자동 자막(transcript)에서 추출. 자막이 없으면 null |
+| **LyricsLine** | 시간 동기화된 개별 가사 줄. startTimeMs/endTimeMs/text로 구성 |
+| **FlatTrackSource** | 범용 평면 구조 트랙. 멜론 차트 등에서 사용. 채널이 중첩 객체가 아닌 문자열 |
+| **ExtendedAudio** | Audio의 확장 타입. uploadDate 추가 포함. 상세 정보 조회 시 사용 |
+| **AudioPlayback** | 현재 재생 세션의 실시간 상태. currentTime, duration, speed 포함 |
