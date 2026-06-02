@@ -15,10 +15,12 @@ function createMockChannelRepo() {
 function createMockYouTube() {
   return {
     search: vi.fn(),
+    searchMore: vi.fn(),
     getInfo: vi.fn(),
     getStreamUrl: vi.fn(),
     getRelated: vi.fn(),
     getChannel: vi.fn(),
+    getLyrics: vi.fn(),
     markMwebFailed: vi.fn(),
     searchTracks: vi.fn(),
   };
