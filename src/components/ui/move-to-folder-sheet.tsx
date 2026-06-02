@@ -48,7 +48,7 @@ export function MoveToFolderSheet({ open, onOpenChange, playlistId }: MoveToFold
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} data-slot="move-to-folder-sheet">
       <DialogContent showCloseButton className="max-h-[70vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>폴더로 이동</DialogTitle>
@@ -57,9 +57,9 @@ export function MoveToFolderSheet({ open, onOpenChange, playlistId }: MoveToFold
         <div className="space-y-1">
           <button
             onClick={() => { handleMove(null).catch(() => undefined); }}
-            className="w-full flex items-center gap-3 p-3 rounded-xl active:bg-white/5 transition-colors"
+            className="w-full flex items-center gap-3 p-3 rounded-xl active:bg-accent transition-colors"
           >
-            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
               <FolderOpen size={18} className="text-muted" />
             </div>
             <span className="text-sm text-foreground">폴더 없음</span>
@@ -69,7 +69,7 @@ export function MoveToFolderSheet({ open, onOpenChange, playlistId }: MoveToFold
             <button
               key={folder.id}
               onClick={() => { handleMove(folder.id).catch(() => undefined); }}
-              className="w-full flex items-center gap-3 p-3 rounded-xl active:bg-white/5 transition-colors"
+              className="w-full flex items-center gap-3 p-3 rounded-xl active:bg-accent transition-colors"
             >
               <div className="w-10 h-10 rounded-lg bg-amber-600/20 flex items-center justify-center">
                 <FolderOpen size={18} className="text-amber-400" />
@@ -102,9 +102,9 @@ export function MoveToFolderSheet({ open, onOpenChange, playlistId }: MoveToFold
         ) : (
           <button
             onClick={() => { setIsCreating(true); }}
-            className="w-full flex items-center gap-3 p-3 rounded-xl active:bg-white/5 transition-colors"
+            className="w-full flex items-center gap-3 p-3 rounded-xl active:bg-accent transition-colors"
           >
-            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
               <Plus size={18} className="text-muted" />
             </div>
             <span className="text-sm text-muted-foreground">새 폴더 만들기</span>

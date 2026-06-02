@@ -13,7 +13,6 @@ interface SortableTrackItemProps {
   duration: number;
   isActive?: boolean;
   onClick?: () => void;
-  onMore?: () => void;
 }
 
 export function SortableTrackItem({
@@ -24,7 +23,6 @@ export function SortableTrackItem({
   duration,
   isActive,
   onClick,
-  onMore,
 }: SortableTrackItemProps) {
   const {
     attributes,
@@ -48,12 +46,12 @@ export function SortableTrackItem({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={isDragging ? 'opacity-90' : ''}>
+    <div ref={setNodeRef} style={style} data-slot="sortable-track-item" className={isDragging ? 'opacity-90' : ''}>
       <div className="flex items-center">
         <button
           {...attributes}
           {...listeners}
-          className="p-2 -ml-1 rounded-lg active:bg-white/5 touch-none"
+          className="p-2 -ml-1 rounded-lg active:bg-accent touch-none"
           style={{ touchAction: 'none' }}
         >
           <GripVertical size={18} className="text-muted" />
@@ -67,7 +65,6 @@ export function SortableTrackItem({
             duration={duration}
             isActive={isActive}
             onClick={onClick}
-            onMore={onMore}
           />
         </div>
       </div>

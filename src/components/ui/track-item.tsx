@@ -1,4 +1,3 @@
-import { MoreVertical } from 'lucide-react';
 import Image from 'next/image';
 import { formatDuration } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
@@ -11,7 +10,6 @@ interface TrackItemProps {
   duration: number;
   isActive?: boolean;
   onClick?: () => void;
-  onMore?: () => void;
 }
 
 export function TrackItem({
@@ -21,7 +19,6 @@ export function TrackItem({
   duration,
   isActive,
   onClick,
-  onMore,
 }: TrackItemProps) {
   return (
     <div
@@ -34,9 +31,10 @@ export function TrackItem({
           onClick();
         }
       }}
+      data-slot="track-item"
       className={cn(
-        'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors active:bg-white/5',
-        isActive && 'bg-white/5',
+        'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors active:bg-accent',
+        isActive && 'bg-accent',
       )}
     >
       <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface flex-shrink-0">
@@ -53,24 +51,14 @@ export function TrackItem({
         )}
       </div>
       <div className="flex-1 min-w-0 text-left">
-        <p className={cn('text-sm font-medium truncate', isActive ? 'text-white' : 'text-foreground')}>
+        <p className={cn('text-sm font-medium truncate', isActive ? 'text-primary' : 'text-foreground')}>
           {title}
         </p>
         <p className="text-xs text-muted truncate mt-0.5">
           {channel}{duration > 0 ? ` · ${formatDuration(duration)}` : ''}
         </p>
       </div>
-      {onMore && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onMore();
-          }}
-          className="p-2 -mr-2 rounded-full active:bg-white/10"
-        >
-          <MoreVertical size={18} className="text-muted" />
-        </button>
-      )}
+
     </div>
   );
 }

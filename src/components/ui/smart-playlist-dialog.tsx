@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogClose,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useUpdatePlaylist } from '@/queries';
 import { toast } from 'sonner';
@@ -136,13 +137,19 @@ function SmartPlaylistForm({ playlist, onOpenChange }: { playlist: Playlist; onO
         <div className="flex gap-2">
           <button
             onClick={() => { setMatch('all'); }}
-            className={`px-4 py-1.5 rounded-full text-sm ${match === 'all' ? 'bg-foreground text-background font-medium' : 'bg-white/5 text-muted'}`}
+            className={cn(
+              'px-4 py-1.5 rounded-full text-sm',
+              match === 'all' ? 'bg-foreground text-background font-medium' : 'bg-accent text-muted',
+            )}
           >
             모두 만족
           </button>
           <button
             onClick={() => { setMatch('any'); }}
-            className={`px-4 py-1.5 rounded-full text-sm ${match === 'any' ? 'bg-foreground text-background font-medium' : 'bg-white/5 text-muted'}`}
+            className={cn(
+              'px-4 py-1.5 rounded-full text-sm',
+              match === 'any' ? 'bg-foreground text-background font-medium' : 'bg-accent text-muted',
+            )}
           >
             하나라도 만족
           </button>
@@ -150,7 +157,7 @@ function SmartPlaylistForm({ playlist, onOpenChange }: { playlist: Playlist; onO
 
         <div className="space-y-3">
           {conditions.map((condition, i) => (
-            <div key={i} className="space-y-2 p-3 bg-white/5 rounded-lg">
+            <div key={i} className="space-y-2 p-3 bg-accent rounded-lg">
               <div className="flex gap-2">
                 <select
                   value={condition.field}
@@ -205,7 +212,7 @@ function SmartPlaylistForm({ playlist, onOpenChange }: { playlist: Playlist; onO
 
         <button
           onClick={addCondition}
-          className="w-full py-2 rounded-lg bg-white/5 text-sm text-muted active:bg-white/10"
+          className="w-full py-2 rounded-lg bg-accent text-sm text-muted active:bg-secondary"
         >
           + 조건 추가
         </button>
@@ -241,7 +248,7 @@ function SmartPlaylistForm({ playlist, onOpenChange }: { playlist: Playlist; onO
 
 export function SmartPlaylistDialog({ open, onOpenChange, playlist }: SmartPlaylistDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} data-slot="smart-playlist-dialog">
       <SmartPlaylistForm playlist={playlist} onOpenChange={onOpenChange} />
     </Dialog>
   );

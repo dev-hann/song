@@ -26,15 +26,17 @@ export function CheckboxTrackItem({
 }: CheckboxTrackItemProps) {
   return (
     <button
+      data-slot="checkbox-track-item"
       onClick={() => { onToggle(videoId); }}
       className={cn(
-        'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors active:bg-white/5',
-        selected && 'bg-white/5',
+        'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors active:bg-accent',
+        selected && 'bg-accent',
       )}
     >
-      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-        selected ? 'bg-primary border-primary' : 'border-border'
-      }`}>
+      <div className={cn(
+        'w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
+        selected ? 'bg-primary border-primary' : 'border-border',
+      )}>
         {selected && <Check size={14} className="text-primary-foreground" />}
       </div>
       <div className="w-10 h-10 rounded-lg overflow-hidden bg-surface flex-shrink-0">

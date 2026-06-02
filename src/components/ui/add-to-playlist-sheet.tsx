@@ -11,6 +11,7 @@ import { usePlaylists, useCreatePlaylist, useAddTrackToPlaylist } from '@/querie
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { ApiError } from '@/lib/api-client';
+import { cn } from '@/lib/utils';
 
 interface AddToPlaylistSheetProps {
   open: boolean;
@@ -116,7 +117,7 @@ export function AddToPlaylistSheet({ open, onOpenChange, track, tracks }: AddToP
       }
       onOpenChange(o);
     }}>
-      <SheetContent side="bottom" showCloseButton={false} className="bg-surface-elevated border-border rounded-t-2xl">
+      <SheetContent side="bottom" showCloseButton={false} data-slot="add-to-playlist-sheet" className="bg-surface-elevated border-border rounded-t-2xl">
         <SheetHeader>
           <SheetTitle>재생목록에 추가</SheetTitle>
           <SheetDescription />
@@ -147,7 +148,7 @@ export function AddToPlaylistSheet({ open, onOpenChange, track, tracks }: AddToP
             ) : (
               <button
                 onClick={() => { setIsCreating(true); }}
-                className="w-full flex items-center gap-4 px-2 py-3 rounded-xl active:bg-white/5"
+                className="w-full flex items-center gap-4 px-2 py-3 rounded-xl active:bg-accent"
               >
                 <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center">
                   <Plus size={20} className="text-muted" />
@@ -175,11 +176,12 @@ export function AddToPlaylistSheet({ open, onOpenChange, track, tracks }: AddToP
                   <button
                     key={pl.id}
                     onClick={() => { toggleSelection(pl.id); }}
-                    className="w-full flex items-center gap-4 px-2 py-3 rounded-xl active:bg-white/5"
+                    className="w-full flex items-center gap-4 px-2 py-3 rounded-xl active:bg-accent"
                   >
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                      isSelected ? 'bg-primary border-primary' : 'border-border'
-                    }`}>
+                    <div className={cn(
+                      'w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
+                      isSelected ? 'bg-primary border-primary' : 'border-border',
+                    )}>
                       {isSelected && <Check size={14} className="text-primary-foreground" />}
                     </div>
                     <div className="flex-1 min-w-0 text-left">

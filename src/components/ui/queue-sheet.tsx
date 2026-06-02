@@ -43,7 +43,7 @@ export function QueueSheet({ open, onOpenChange }: QueueSheetProps) {
           {audio && (
             <div className="mb-4">
               <p className="text-xs text-muted font-medium mb-2 px-2">지금 재생 중</p>
-              <div className="bg-white/5 rounded-xl px-2 py-2">
+              <div className="bg-accent rounded-xl px-2 py-2">
                 <TrackItem
                   id={audio.id}
                   title={audio.title}
@@ -72,7 +72,7 @@ export function QueueSheet({ open, onOpenChange }: QueueSheetProps) {
                     />
                     <button
                       onClick={() => { removeFromQueue(currentIndex + 1 + i); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 active:bg-white/10 transition-opacity"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 active:bg-secondary transition-opacity"
                     >
                       <Trash2 size={14} className="text-muted" />
                     </button>
@@ -105,7 +105,7 @@ export function QueueSheet({ open, onOpenChange }: QueueSheetProps) {
                     'flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors',
                     autoplay
                       ? 'bg-foreground text-background'
-                      : 'bg-white/5 text-muted active:bg-white/10',
+                      : 'bg-accent text-muted active:bg-secondary',
                   )}
                 >
                   <InfinityIcon size={12} />
@@ -127,7 +127,7 @@ export function QueueSheet({ open, onOpenChange }: QueueSheetProps) {
                     />
                     <button
                       onClick={() => { removeFromRecommendedQueue(i); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 active:bg-white/10 transition-opacity"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 active:bg-secondary transition-opacity"
                     >
                       <Trash2 size={14} className="text-muted" />
                     </button>

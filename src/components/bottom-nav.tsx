@@ -27,10 +27,10 @@ export function BottomNav() {
             onClick={() => { router.push(`/${tab.id}`); }}
             className={cn(
               'flex flex-col items-center justify-center w-full h-full transition-colors',
-              isActive ? 'text-white' : 'text-muted-foreground',
+              isActive ? 'text-foreground' : 'text-muted-foreground',
             )}
           >
-            <Icon size={22} className={isActive ? 'fill-white' : ''} strokeWidth={isActive ? 2.5 : 1.5} />
+            <Icon size={22} className={isActive ? 'fill-foreground' : ''} strokeWidth={isActive ? 2.5 : 1.5} />
             <span className="text-[10px] mt-1 font-medium">{tab.label}</span>
           </button>
         );

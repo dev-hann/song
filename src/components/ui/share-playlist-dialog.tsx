@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useSharePlaylist } from '@/queries';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Playlist } from '@/types';
 
 interface SharePlaylistDialogProps {
@@ -59,14 +60,20 @@ function SharePlaylistForm({ playlist }: { playlist: Playlist }) {
       </DialogHeader>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-accent rounded-lg">
           <span className="text-sm text-foreground">공개 링크 활성화</span>
           <button
             onClick={() => { handleToggle().catch(() => undefined); }}
             disabled={sharePlaylist.isPending}
-            className={`relative w-11 h-6 rounded-full transition-colors ${isPublic ? 'bg-foreground' : 'bg-white/20'}`}
+            className={cn(
+              'relative w-11 h-6 rounded-full transition-colors',
+              isPublic ? 'bg-foreground' : 'bg-secondary',
+            )}
           >
-            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${isPublic ? 'left-[22px]' : 'left-0.5'}`} />
+            <span className={cn(
+              'absolute top-0.5 w-5 h-5 rounded-full bg-foreground transition-transform',
+              isPublic ? 'left-[22px]' : 'left-0.5',
+            )} />
           </button>
         </div>
 
@@ -103,7 +110,7 @@ function SharePlaylistForm({ playlist }: { playlist: Playlist }) {
 
 export function SharePlaylistDialog({ open, onOpenChange, playlist }: SharePlaylistDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} data-slot="share-playlist-dialog">
       <SharePlaylistForm playlist={playlist} />
     </Dialog>
   );

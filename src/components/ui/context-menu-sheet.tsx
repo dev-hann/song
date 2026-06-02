@@ -8,6 +8,8 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 
+import { cn } from '@/lib/utils';
+
 export interface TrackContextMenuProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -62,7 +64,7 @@ export function TrackContextMenu({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" showCloseButton={false} className="bg-surface-elevated border-border rounded-t-2xl">
+      <SheetContent side="bottom" showCloseButton={false} data-slot="context-menu-sheet" className="bg-surface-elevated border-border rounded-t-2xl">
         <SheetHeader className="pb-2">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface flex-shrink-0">
@@ -102,10 +104,10 @@ export function TrackContextMenu({
                   typed.action?.();
                   onOpenChange(false);
                 }}
-                className="w-full flex items-center gap-4 px-2 py-3 rounded-xl active:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-4 px-2 py-3 rounded-xl active:bg-accent transition-colors"
               >
                 <typed.icon size={20} className={typed.destructive ? 'text-destructive' : 'text-muted'} />
-                <span className={`text-sm ${typed.destructive ? 'text-destructive' : 'text-foreground'}`}>{typed.label}</span>
+                <span className={cn('text-sm', typed.destructive ? 'text-destructive' : 'text-foreground')}>{typed.label}</span>
               </button>
             );
           })}

@@ -14,6 +14,7 @@ interface ContentCardProps {
 export function ContentCard({ title, subtitle, thumbnail, onClick, className, size = 'md' }: ContentCardProps) {
   return (
     <button
+      data-slot="content-card"
       onClick={onClick}
       className={cn('group text-left w-full', className)}
     >
@@ -36,9 +37,9 @@ export function ContentCard({ title, subtitle, thumbnail, onClick, className, si
             <Play size={24} />
           </div>
         )}
-        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/40 to-transparent" />
-        <div className="absolute bottom-1.5 right-1.5 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200">
-          <Play size={14} fill="white" className="text-white ml-px" />
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background/40 to-transparent" />
+        <div className="absolute bottom-1.5 right-1.5 w-8 h-8 rounded-full bg-background/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200">
+          <Play size={14} fill="currentColor" className="text-foreground ml-px" />
         </div>
       </div>
       <p className={cn(

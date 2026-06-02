@@ -18,8 +18,8 @@ export default function MainLayoutClient({ children }: { children: ReactNode }) 
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-black">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-white border-t-transparent" />
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
       </div>
     );
   }

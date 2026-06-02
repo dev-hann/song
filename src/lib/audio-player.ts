@@ -94,7 +94,7 @@ export class AudioPlayer {
   }
 
   seek(time: number) {
-    this.el.fastSeek(time);
+    this.el.currentTime = time;
     this._currentTime = time;
     this.emitTime({ currentTime: time, duration: this._duration });
     this.updateMediaSessionPosition();

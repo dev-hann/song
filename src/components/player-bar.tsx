@@ -31,8 +31,8 @@ export function PlayerBar() {
             <Image src={audio.thumbnail} alt={audio.title} className="w-full h-full object-cover" loading="lazy" unoptimized width={44} height={44} />
           )}
           {isLoading && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <Loader2 size={16} className="text-white animate-spin" />
+            <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+              <Loader2 size={16} className="text-foreground animate-spin" />
             </div>
           )}
         </div>
@@ -46,13 +46,13 @@ export function PlayerBar() {
         <button
           onClick={(e) => { handleLike(e); }}
           disabled={isPending}
-          className="p-2 rounded-full active:bg-white/10 disabled:opacity-40"
+          className="p-2 rounded-full active:bg-secondary disabled:opacity-40"
         >
           <Heart
             size={18}
             className={cn(
               'transition-colors',
-              isLiked ? 'text-red-500 fill-red-500' : 'text-muted',
+              isLiked ? 'text-destructive fill-destructive' : 'text-muted',
             )}
           />
         </button>
@@ -62,7 +62,7 @@ export function PlayerBar() {
             togglePlay();
           }}
           disabled={isLoading}
-          className="p-2 rounded-full active:bg-white/10 disabled:opacity-60"
+          className="p-2 rounded-full active:bg-secondary disabled:opacity-60"
         >
           {isLoading ? (
             <Loader2 size={20} className="text-foreground animate-spin" />

@@ -1,13 +1,14 @@
 "use client";
 
-import { Play, Pause, ChevronDown, Shuffle, SkipBack, SkipForward, Repeat, Repeat1, Heart, ListMusic, Gauge, MoreVertical, Sparkles, Infinity as InfinityIcon } from 'lucide-react';
+import { Play, Pause, ChevronDown, Shuffle, SkipBack, SkipForward, Repeat, Repeat1, Heart, ListMusic, Gauge, MoreVertical, Sparkles, Infinity as InfinityIcon, Music2 } from 'lucide-react';
 import { useAudioStore } from '@/store';
 import { useAudioElement } from '@/context/audio-context';
-import { useRelatedTracks } from '@/queries';
+import { useRelatedTracks, useLyricsQuery } from '@/queries';
 import { AudioStatus, RepeatMode } from '@/constants';
 import { formatDuration } from '@/lib/formatters';
 import { searchResultToAudio } from '@/lib/track-adapters';
 import { useLikeToggle } from '@/hooks/use-like-toggle';
+import { useTrackContextMenu } from '@/hooks/use-track-context-menu';
 import { audioPlayer } from '@/lib/audio-player';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LyricsDisplay } from '@/components/lyrics-display';
+import { TrackCard } from '@/components/ui/track-card';
+import { TrackContextMenu } from '@/components/ui/context-menu-sheet';
 
 interface FullPlayerProps {
   show: boolean;
@@ -27,7 +31,7 @@ interface FullPlayerProps {
   onOpenQueue?: () => void;
 }
 
-type PlayerTab = 'controls' | 'related';
+type PlayerTab = 'controls' | 'lyrics' | 'related';
 
 export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
   const {
@@ -41,9 +45,8 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
     shuffle,
     autoplay,
     toggleAutoplay,
-    playNext,
+    playNext: playNextTrack,
     playPrevious,
-    addToQueue,
   } = useAudioStore();
 
   const { seek, setSpeed, currentTime, duration } = useAudioElement();
@@ -51,6 +54,20 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
   const { data: relatedData, isLoading: relatedLoading } = useRelatedTracks(
     audio?.id ?? null,
   );
+  const { data: lyricsData, isLoading: lyricsLoading } = useLyricsQuery(
+    audio?.id ?? null,
+  );
+  const {
+    contextTrack,
+    contextOpen,
+    setContextOpen,
+    openContext,
+    playNow,
+    addToQueue,
+    playNext: playNextFromMenu,
+    openInYoutube,
+    share,
+  } = useTrackContextMenu();
   const isPlaying = status === AudioStatus.PLAYING;
   const isLoading = status === AudioStatus.LOADING;
   const [showSpeeds, setShowSpeeds] = useState(false);
@@ -92,10 +109,18 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
     audioPlayer.load(first.id, first).catch(() => undefined);
   };
 
-  const addRelatedToQueue = (index: number) => {
-    const related = relatedData?.results;
-    if (!related?.[index]) {return;}
-    addToQueue(searchResultToAudio(related[index]));
+  const openRelatedContext = (track: { id: string; title: string; channel: { name: string }; thumbnail: string; duration: number }) => {
+    openContext({
+      id: track.id,
+      title: track.title,
+      channel: track.channel.name,
+      thumbnail: track.thumbnail,
+      duration: track.duration,
+    });
+  };
+
+  const handleLyricsSeek = (timeMs: number) => {
+    seek(timeMs / 1000);
   };
 
   if (!audio) {return null;}
@@ -103,7 +128,7 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
   return (
     <div className={cn('full-player', show && 'active')}>
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <button onClick={onClose} className="p-2 -ml-2 rounded-full active:bg-white/10">
+        <button data-testid="btn-close" onClick={onClose} className="p-2 -ml-2 rounded-full active:bg-secondary">
           <ChevronDown size={24} className="text-foreground" />
         </button>
 
@@ -114,10 +139,24 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
               'px-3 py-1 rounded-full text-xs font-medium transition-colors',
               activeTab === 'controls'
                 ? 'bg-foreground text-background'
-                : 'text-muted active:bg-white/5',
+                : 'text-muted active:bg-accent',
             )}
           >
             재생
+          </button>
+          <button
+            onClick={() => { setActiveTab('lyrics'); }}
+            className={cn(
+              'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+              activeTab === 'lyrics'
+                ? 'bg-foreground text-background'
+                : 'text-muted active:bg-accent',
+            )}
+          >
+            <span className="flex items-center gap-1">
+              <Music2 size={12} />
+              가사
+            </span>
           </button>
           <button
             onClick={() => { setActiveTab('related'); }}
@@ -125,7 +164,7 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
               'px-3 py-1 rounded-full text-xs font-medium transition-colors',
               activeTab === 'related'
                 ? 'bg-foreground text-background'
-                : 'text-muted active:bg-white/5',
+                : 'text-muted active:bg-accent',
             )}
           >
             <span className="flex items-center gap-1">
@@ -136,7 +175,7 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="p-2 -mr-2 rounded-full active:bg-white/10">
+          <DropdownMenuTrigger data-testid="btn-menu" className="p-2 -mr-2 rounded-full active:bg-secondary">
             <MoreVertical size={20} className="text-foreground" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-surface-elevated border-border">
@@ -155,11 +194,11 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
       {activeTab === 'controls' ? (
         isLoading ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="w-10 h-10 border-2 border-white/10 border-t-white rounded-full animate-[spin_1s_linear_infinite]" />
+            <div className="w-10 h-10 border-2 border-secondary border-t-foreground rounded-full animate-[spin_1s_linear_infinite]" />
           </div>
         ) : (
           <>
-            <div className="flex-1 flex flex-col items-center justify-center px-8">
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-8">
               <div className="w-[min(70vw,300px)] aspect-square rounded-2xl overflow-hidden shadow-2xl mb-8">
                 {audio.thumbnail && (
                   <Image src={audio.thumbnail} alt={audio.title} className="w-full h-full object-cover" unoptimized width={300} height={300} />
@@ -190,13 +229,14 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
               </div>
 
               <div className="flex items-center justify-between mb-6">
-                <button onClick={toggleShuffle} className="p-2 rounded-full active:bg-white/10">
+                <button data-testid="btn-shuffle" onClick={toggleShuffle} className="p-2 rounded-full active:bg-secondary">
                   <Shuffle size={20} className={shuffle ? 'text-foreground' : 'text-muted-foreground'} />
                 </button>
-                <button onClick={playPrevious} className="p-2 rounded-full active:bg-white/10">
+                <button data-testid="btn-prev" onClick={playPrevious} className="p-2 rounded-full active:bg-secondary">
                   <SkipBack size={24} className="text-foreground" fill="currentColor" />
                 </button>
                 <button
+                  data-testid="btn-play"
                   onClick={togglePlay}
                   className="w-14 h-14 rounded-full bg-foreground flex items-center justify-center active:scale-95 transition-transform"
                 >
@@ -206,10 +246,10 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
                     <Play size={28} className="text-background ml-1" fill="currentColor" />
                   )}
                 </button>
-                <button onClick={playNext} className="p-2 rounded-full active:bg-white/10">
+                <button data-testid="btn-next" onClick={playNextTrack} className="p-2 rounded-full active:bg-secondary">
                   <SkipForward size={24} className="text-foreground" fill="currentColor" />
                 </button>
-                <button onClick={toggleRepeatMode} className="p-2 rounded-full active:bg-white/10 relative">
+                <button data-testid="btn-repeat" onClick={toggleRepeatMode} className="p-2 rounded-full active:bg-secondary relative">
                   {repeatMode === RepeatMode.ONE ? (
                     <Repeat1 size={20} className="text-foreground" />
                   ) : (
@@ -219,14 +259,14 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
               </div>
 
               <div className="flex items-center justify-between">
-                <button onClick={handleLike} disabled={likePending} className="p-2 rounded-full active:bg-white/10 disabled:opacity-40">
+                <button data-testid="btn-like" onClick={handleLike} disabled={likePending} className="p-2 rounded-full active:bg-secondary disabled:opacity-40">
                   <Heart
                     size={20}
-                    className={isLiked ? 'text-red-500 fill-red-500' : 'text-muted'}
+                    className={isLiked ? 'text-destructive fill-destructive' : 'text-muted'}
                   />
                 </button>
 
-                <button onClick={toggleAutoplay} className="p-2 rounded-full active:bg-white/10">
+                <button data-testid="btn-autoplay" onClick={toggleAutoplay} className="p-2 rounded-full active:bg-secondary">
                   <InfinityIcon
                     size={20}
                     className={autoplay ? 'text-foreground' : 'text-muted-foreground'}
@@ -234,7 +274,7 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
                 </button>
 
                 {showSpeeds ? (
-                  <div className="flex items-center gap-1">
+                  <div data-testid="speed-picker" className="flex items-center gap-1">
                     {speeds.map((s) => (
                       <button
                         key={s}
@@ -244,7 +284,7 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
                         }}
                         className={cn(
                           'px-2 py-1 rounded-md text-xs font-medium transition-colors',
-                          playback.speed === s ? 'bg-foreground text-background' : 'text-muted active:bg-white/5',
+                          playback.speed === s ? 'bg-foreground text-background' : 'text-muted active:bg-accent',
                         )}
                       >
                         {s}x
@@ -252,18 +292,30 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
                     ))}
                   </div>
                 ) : (
-                  <button onClick={() => { setShowSpeeds(true); }} className="p-2 rounded-full active:bg-white/10">
+                  <button data-testid="btn-speed" onClick={() => { setShowSpeeds(true); }} className="p-2 rounded-full active:bg-secondary">
                     <Gauge size={20} className="text-muted" />
                   </button>
                 )}
 
-                <button onClick={onOpenQueue} className="p-2 rounded-full active:bg-white/10">
+                <button data-testid="btn-queue" onClick={onOpenQueue} className="p-2 rounded-full active:bg-secondary">
                   <ListMusic size={20} className="text-muted" />
                 </button>
               </div>
             </div>
           </>
         )
+      ) : activeTab === 'lyrics' ? (
+        <div className="flex-1 overflow-y-auto px-4 pb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-bold text-foreground">가사</h3>
+          </div>
+          <LyricsDisplay
+            lines={lyricsData?.lines ?? null}
+            currentTimeMs={currentTime * 1000}
+            onSeek={handleLyricsSeek}
+            isLoading={lyricsLoading}
+          />
+        </div>
       ) : (
         <div className="flex-1 overflow-y-auto px-4 pb-6">
           <div className="flex items-center justify-between mb-4">
@@ -294,51 +346,18 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
               ))}
             </div>
           ) : relatedData?.results && relatedData.results.length > 0 ? (
-            <div className="space-y-2">
-              {relatedData.results.map((track, i) => (
-                <div
+            <div className="space-y-1">
+              {relatedData.results.map((track) => (
+                <TrackCard
                   key={track.id}
-                  className="flex gap-3 p-2 rounded-xl active:bg-white/5 transition-colors"
-                >
-                  <button
-                    onClick={() => { playRelated(i); }}
-                    className="flex-shrink-0"
-                  >
-                    <div className="w-28 h-16 rounded-lg overflow-hidden bg-surface relative">
-                      {track.thumbnail && (
-                        <Image
-                          src={track.thumbnail}
-                          alt={track.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          unoptimized
-                          width={112}
-                          height={64}
-                        />
-                      )}
-                      {track.duration > 0 && (
-                        <span className="absolute bottom-1 right-1 text-[10px] bg-black/70 text-white px-1 py-0.5 rounded">
-                          {formatDuration(track.duration)}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <button
-                      onClick={() => { playRelated(i); }}
-                      className="w-full text-left"
-                    >
-                      <p className="text-sm font-medium text-foreground line-clamp-2">{track.title}</p>
-                      <p className="text-xs text-muted mt-0.5 truncate">{track.channel.name}</p>
-                    </button>
-                    <button
-                      onClick={() => { addRelatedToQueue(i); }}
-                      className="text-xs text-muted mt-1 active:text-foreground"
-                    >
-                      + 큐에 추가
-                    </button>
-                  </div>
-                </div>
+                  variant="landscape"
+                  id={track.id}
+                  title={track.title}
+                  channel={track.channel.name}
+                  thumbnail={track.thumbnail}
+                  duration={track.duration}
+                  onClick={() => { openRelatedContext(track); }}
+                />
               ))}
             </div>
           ) : (
@@ -348,6 +367,17 @@ export function FullPlayer({ show, onClose, onOpenQueue }: FullPlayerProps) {
           )}
         </div>
       )}
+
+      <TrackContextMenu
+        open={contextOpen}
+        onOpenChange={setContextOpen}
+        track={contextTrack}
+        onPlay={playNow}
+        onAddToQueue={addToQueue}
+        onPlayNext={playNextFromMenu}
+        onShare={share}
+        onOpenInYoutube={openInYoutube}
+      />
     </div>
   );
 }

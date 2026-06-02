@@ -4,26 +4,26 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-elevated: var(--surface-elevated);
-  --color-surface-overlay: var(--surface-overlay);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-ring: var(--ring);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-destructive: var(--destructive);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
+  --color-background: rgb(255 255 255);
+  --color-surface: rgb(242 242 247);
+  --color-surface-elevated: rgb(255 255 255);
+  --color-surface-overlay: rgb(242 242 247 / 0.85);
+  --color-foreground: rgb(28 28 30);
+  --color-muted: rgb(142 142 147);
+  --color-muted-foreground: rgb(174 174 178);
+  --color-border: rgb(60 60 67 / 0.1);
+  --color-ring: rgb(0 0 0 / 0.15);
+  --color-primary: rgb(28 28 30);
+  --color-primary-foreground: rgb(255 255 255);
+  --color-secondary: rgb(0 0 0 / 0.06);
+  --color-secondary-foreground: rgb(28 28 30);
+  --color-destructive: rgb(255 59 48);
+  --color-accent: rgb(0 0 0 / 0.04);
+  --color-accent-foreground: rgb(28 28 30);
+  --color-popover: rgb(255 255 255);
+  --color-popover-foreground: rgb(28 28 30);
+  --color-card: rgb(242 242 247);
+  --color-card-foreground: rgb(28 28 30);
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
@@ -31,65 +31,45 @@
 }
 
 :root {
-  --background: #ffffff;
-  --surface: #f2f2f7;
-  --surface-elevated: #ffffff;
-  --surface-overlay: rgba(242, 242, 247, 0.85);
-  --foreground: #1c1c1e;
-  --muted: #8e8e93;
-  --muted-foreground: #aeaeb2;
-  --border: rgba(60, 60, 67, 0.1);
-  --ring: rgba(0, 0, 0, 0.15);
-  --primary: #1c1c1e;
-  --primary-foreground: #ffffff;
-  --secondary: rgba(0, 0, 0, 0.06);
-  --secondary-foreground: #1c1c1e;
-  --destructive: #ff3b30;
-  --accent: rgba(0, 0, 0, 0.04);
-  --accent-foreground: #1c1c1e;
-  --popover: #ffffff;
-  --popover-foreground: #1c1c1e;
-  --card: #f2f2f7;
-  --card-foreground: #1c1c1e;
-  --nav-bg: rgba(242, 242, 247, 0.95);
-  --nav-border: rgba(60, 60, 67, 0.1);
-  --player-bg: rgba(255, 255, 255, 0.95);
-  --player-border: rgba(60, 60, 67, 0.1);
-  --full-player-bg: #ffffff;
-  --shimmer-from: rgba(0, 0, 0, 0.03);
-  --shimmer-via: rgba(0, 0, 0, 0.08);
-  --shimmer-to: rgba(0, 0, 0, 0.03);
+  --nav-bg: rgb(242 242 247 / 0.95);
+  --nav-border: rgb(60 60 67 / 0.1);
+  --player-bg: rgb(255 255 255 / 0.95);
+  --player-border: rgb(60 60 67 / 0.1);
+  --full-player-bg: rgb(255 255 255);
+  --shimmer-from: rgb(0 0 0 / 0.03);
+  --shimmer-via: rgb(0 0 0 / 0.08);
+  --shimmer-to: rgb(0 0 0 / 0.03);
 }
 
 .dark {
-  --background: #000000;
-  --surface: #0a0a0a;
-  --surface-elevated: #141414;
-  --surface-overlay: rgba(20, 20, 20, 0.85);
-  --foreground: #ffffff;
-  --muted: #a1a1a6;
-  --muted-foreground: #636366;
-  --border: rgba(255, 255, 255, 0.08);
-  --ring: rgba(255, 255, 255, 0.3);
-  --primary: #ffffff;
-  --primary-foreground: #000000;
-  --secondary: rgba(255, 255, 255, 0.1);
-  --secondary-foreground: #ffffff;
-  --destructive: #ff3b30;
-  --accent: rgba(255, 255, 255, 0.05);
-  --accent-foreground: #ffffff;
-  --popover: #141414;
-  --popover-foreground: #ffffff;
-  --card: #0a0a0a;
-  --card-foreground: #ffffff;
-  --nav-bg: rgba(0, 0, 0, 0.95);
-  --nav-border: rgba(255, 255, 255, 0.06);
-  --player-bg: rgba(18, 18, 18, 0.95);
-  --player-border: rgba(255, 255, 255, 0.06);
-  --full-player-bg: #000000;
-  --shimmer-from: rgba(255, 255, 255, 0.03);
-  --shimmer-via: rgba(255, 255, 255, 0.08);
-  --shimmer-to: rgba(255, 255, 255, 0.03);
+  --color-background: rgb(0 0 0);
+  --color-surface: rgb(10 10 10);
+  --color-surface-elevated: rgb(20 20 20);
+  --color-surface-overlay: rgb(20 20 20 / 0.85);
+  --color-foreground: rgb(255 255 255);
+  --color-muted: rgb(161 161 166);
+  --color-muted-foreground: rgb(99 99 102);
+  --color-border: rgb(255 255 255 / 0.08);
+  --color-ring: rgb(255 255 255 / 0.3);
+  --color-primary: rgb(255 255 255);
+  --color-primary-foreground: rgb(0 0 0);
+  --color-secondary: rgb(255 255 255 / 0.1);
+  --color-secondary-foreground: rgb(255 255 255);
+  --color-destructive: rgb(255 59 48);
+  --color-accent: rgb(255 255 255 / 0.05);
+  --color-accent-foreground: rgb(255 255 255);
+  --color-popover: rgb(20 20 20);
+  --color-popover-foreground: rgb(255 255 255);
+  --color-card: rgb(10 10 10);
+  --color-card-foreground: rgb(255 255 255);
+  --nav-bg: rgb(0 0 0 / 0.95);
+  --nav-border: rgb(255 255 255 / 0.06);
+  --player-bg: rgb(18 18 18 / 0.95);
+  --player-border: rgb(255 255 255 / 0.06);
+  --full-player-bg: rgb(0 0 0);
+  --shimmer-from: rgb(255 255 255 / 0.03);
+  --shimmer-via: rgb(255 255 255 / 0.08);
+  --shimmer-to: rgb(255 255 255 / 0.03);
 }
 
 * {
@@ -106,8 +86,7 @@ body {
   height: 100dvh;
   overflow: hidden;
   background: var(--color-background);
-  color: var(--color-foreground);
-  font-family:
+  color: var(--color-foreground);  font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
