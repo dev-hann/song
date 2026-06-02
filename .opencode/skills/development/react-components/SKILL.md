@@ -657,4 +657,4 @@ Before committing component code:
 
 ---
 
-**Related SKILLS:** code-standards.md, api-testing.md, component-testing.md
+**Related SKILLS:** code-standards.md, api-testing.md, component-testing.md, design-system

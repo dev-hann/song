@@ -159,6 +159,7 @@ After implementation is complete and tests pass:
 - `src/lib/api-client.ts` — apiFetch throws on error pattern
 
 ### Designer Reviewer checks against:
+- `design-system` skill — Token usage rules, component patterns, consistency audit, dark mode
 - `src/styles/globals.css` — Theme tokens, CSS variables
 - `src/components/ui/` — Existing component reuse
 - Dark/light mode — Both themes supported
