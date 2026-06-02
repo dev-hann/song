@@ -91,7 +91,7 @@ PlaylistFolder 1──* Playlist  (folderId, 삭제 시 orphan 처리)
 Playlist 1──* PlaylistTrack   (CASCADE delete)
 
 [Transient — DB 없음]
-Audio ←── Like / History / PlaylistTrack / SearchResult / ChannelVideo / MelonChart
+Audio ←── Like / History / PlaylistTrack / SearchResult / ChannelVideo / FlatTrackSource
 ```
 
 ---

@@ -8,6 +8,7 @@ Google OAuth로 인증된 서비스 사용자.
 
 | Property | Description |
 |----------|-------------|
+| id | 고유 식별자. 서버 생성 |
 | email | Google 계정 이메일. 고유값 |
 | name | 표시 이름 |
 | picture | 프로필 이미지 URL (선택) |
@@ -19,7 +20,7 @@ Google OAuth로 인증된 서비스 사용자.
 
 1. **생성**: 첫 Google 로그인 시 자동 생성. 별도 가입 절차 없음.
 2. **로그인**: 이후 로그인 시 `lastLogin` 갱신.
-3. **비활성화**: `isActive = false`인 사용자는 로그인 거부. 기존 세션도 차단.
+3. **비활성화**: `isActive = false`인 사용자는 신규 로그인 거부. 기존 세션은 JWT 만료(30일)까지 유지됨.
 
 ---
 
@@ -30,7 +31,8 @@ Google OAuth로 인증된 서비스 사용자.
 | Provider | Google OAuth 단일 제공자 |
 | Session | JWT 기반, 30일 만료 |
 | Auto-creation | 첫 로그인 시 User 자동 생성 (별도 가입 화면 없음) |
-| Inactive Block | 비활성 사용자는 로그인 거부 |
+| Inactive Block | 비활성 사용자는 신규 로그인 거부 (기존 세션은 만료까지 유지) |
+| Test Provider | 비프로덕션 환경에서 E2E_TEST_EMAIL 설정 시 Credentials 제공자 활성화 |
 
 ---
 

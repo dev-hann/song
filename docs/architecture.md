@@ -50,14 +50,15 @@ server/
 │
 ├── infrastructure/                     # 외부 세계 구현체
 │   ├── persistence/                    # DB
-│   │   ├── connection.ts               # Drizzle + postgres.js 연결
-│   │   ├── schema.ts                   # Drizzle 테이블 정의
 │   │   ├── repositories/               # Port 구현체 (DB 쿼리)
 │   │   └── mappers/                    # DB row → Domain entity (Zod .parse)
 │   └── external/                       # 외부 API
 │       ├── youtube/                    # client, parsers, schemas
-│       ├── melon/                      # scraper, parsers
-│       └── github/                     # issues
+│       └── melon/                      # scraper, parsers
+│
+├── db/                                 # DB 연결 + 스키마
+│   ├── index.ts                        # Drizzle + postgres.js 연결
+│   └── schema.ts                       # Drizzle 테이블 정의
 │
 ├── lib/                                # 프레임워크 유틸
 │   ├── route-helpers.ts                # requireAuth, validateBody, validateParams, handleErrors
@@ -97,7 +98,7 @@ server/
 
 | 디렉토리 | 내용 |
 |----------|------|
-| `entities/` | 각 도메인 객체의 Zod 스키마. 예: audio, like, playlist, history, channel, search, melon, user |
+| `entities/` | 각 도메인 객체의 Zod 스키마. 예: audio, like, playlist, history, channel, search, melon, user, related, lyrics |
 | `rules/` | 순수 함수 비즈니스 규칙. 예: 오디오 길이 필터링, 스마트 재생목록 조건 평가, 온보딩 필요 여부 판단 |
 | `ports/` | 인터페이스. `repositories.ts` (DB 접근), `providers.ts` (외부 API 접근) |
 

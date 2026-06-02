@@ -8,6 +8,7 @@
 
 | Property | Description |
 |----------|-------------|
+| id | 재생목록 고유 식별자 |
 | name | 재생목록 이름 |
 | description | 설명 (선택) |
 | coverImage | 커버 이미지 URL (선택) |
@@ -17,6 +18,7 @@
 | folderId | 소속 폴더 (선택) |
 | isPublic | 공개 여부. 공개 시 공유 링크 생성 가능 |
 | shareId | 공유용 고유 식별자 (공개 설정 시 자동 생성) |
+| tracks | 포함된 트랙 목록 (상세 조회 시에만 포함, optional) |
 | createdAt | 생성일 |
 | updatedAt | 수정일 (트랙 변경 시 자동 갱신) |
 
@@ -30,6 +32,7 @@
 
 | Property | Description |
 |----------|-------------|
+| id | 트랙 고유 식별자 (자동 생성) |
 | videoId | YouTube video ID |
 | title | 영상 제목 (추가 시점 스냅샷) |
 | channel | 채널명 (추가 시점 스냅샷) |
@@ -48,6 +51,7 @@
 
 | Property | Description |
 |----------|-------------|
+| id | 폴더 고유 식별자 |
 | name | 폴더 이름 |
 | sortOrder | 정렬 순서 |
 | createdAt | 생성일 |
@@ -128,3 +132,9 @@
 
 - 재생목록을 그룹화하는 선택적 컨테이너
 - **폴더 삭제 시**: 소속 재생목록은 유지 (폴더 참조만 제거)
+- **재생목록 이동**: 재생목록을 특정 폴더로 이동하거나(folderId 설정), 폴더에서 제거(folderId = null) 가능
+
+### 스마트 재생목록 동작
+
+- 스마트 재생목록의 트랙은 likes 테이블을 실시간 필터링하여 동적으로 생성 (DB에 저장되지 않음)
+- 트랙에 synthetic negative ID가 할당됨

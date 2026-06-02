@@ -16,6 +16,7 @@ YouTube 영상을 음악으로 추상화한 재생 단위. DB에 영속화되지
 | viewCount | 조회수 |
 | thumbnail | 썸네일 URL |
 | channel | `{ id?, name, thumbnail? }` 채널 정보 |
+| published | 게시일 (선택, ISO 문자열) |
 
 ### 트랙 어댑터
 
@@ -28,7 +29,8 @@ YouTube 영상을 음악으로 추상화한 재생 단위. DB에 영속화되지
 | PlaylistTrack | `playlistTrackToAudio()` | 재생목록에서 재생 |
 | SearchResultAudio | `searchResultToAudio()` | 검색 결과에서 재생 |
 | ChannelVideo | `channelVideoToAudio()` | 채널 영상에서 재생 |
-| MelonChartItem | `melonChartToAudio()` | 차트에서 재생 |
+| FlatTrackSource | `flatTrackToAudio()` | 범용 평면 트랙 (멜론 차트 등)에서 재생 |
+| — | `toAudio(track)` | 트랙 타입 자동 감지 후 해당 어댑터로 위임 |
 
 ---
 
@@ -90,10 +92,10 @@ PLAYING → (ended) → RepeatMode.ONE? → 처음부터 재생
 2. 셔플 모드: 랜덤 인덱스 선택
 3. 순차 모드: 다음 인덱스
    - 사용자 큐 끝 도달 시:
+      - `repeatMode = ALL`: 처음부터
      - `recommendedQueue`에 곡이 있으면: 첫 곡 꺼내서 재생
-     - `repeatMode = ALL`: 처음부터
      - `autoplay = true`: YouTube 관련 영상을 `recommendedQueue`에 추가 후 첫 곡 재생
-     - 그 외: 정지
+      - 그 외: 정지
 
 **이전 트랙 (`playPrevious`)**:
 1. 현재 재생 시간 > 3초 → 처음부터 재생
@@ -147,6 +149,15 @@ YouTube 오디오 스트림을 서버에서 중계.
 - **실패 기억**: 특정 추출 전략이 실패한 영상 ID를 기억하여 이후 우회
 - **범위 요청**: seeking을 위한 Range 헤더 지원
 
+### 캐시 정책
+
+- 스트림 URL 인메모리 캐시: 3시간 TTL, 최대 50개 항목
+- 만료 시 자동 제거
+
+### 오디오 필터
+
+- 콘텐츠 분류 기준: 재생 시간 30초~900초 (15분) 이내만 오디오 콘텐츠로 간주
+
 ---
 
 ## MediaSession
@@ -172,6 +183,7 @@ YouTube 오디오 스트림을 서버에서 중계.
 | 좋아요 / 취소 | 좋아요 토글 (페이지별) |
 | 공유 | YouTube 링크 클립보드 복사 |
 | YouTube에서 보기 | YouTube 원본 영상으로 이동 |
+| 채널로 이동 | 해당 채널 페이지로 이동 |
 | 재생목록에서 제거 | 플레이리스트에서만 표시 |
 
 ### 전체 재생 / 셔플

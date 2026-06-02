@@ -308,14 +308,13 @@ import type { Audio } from '@/types';
 import { AudioStatus } from '@/types';
 ```
 
-### DB 모델 작성
+### Repository 작성
 
 ```typescript
 import { db } from '@/server/db';
 import { likes } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 
-// 모든 모델 함수는 async
 export async function getAllLikes(userId: string): Promise<LikeDTO[]> {
   const rows = await db.select().from(likes)
     .where(eq(likes.userId, userId));
@@ -339,7 +338,7 @@ await db.insert(likes).values({ ... })
 ```typescript
 import { toLikeDTO } from './dto';
 
-// 모델 함수는 Drizzle row → DTO 변환 후 반환
+// Repository 함수는 Drizzle row → DTO 변환 후 반환
 const rows = await db.select().from(likes).where(...);
 return rows.map(toLikeDTO);
 ```
@@ -348,12 +347,12 @@ return rows.map(toLikeDTO);
 
 ```typescript
 import { requireAuth, validateBody, handleErrors } from '@/server/lib/route-helpers';
+import { useCases } from '@/server/application/wiring';
 
 export const GET = handleErrors(async (request: Request) => {
   const { session, error } = await requireAuth();
   if (error) { return error; }
-  // 모델 함수 호출 시 await 필수
-  const likes = await getAllLikes(session.user.id);
+  const likes = await useCases.likes.getAll(session.user.id);
   return NextResponse.json(likes);
 });
 
@@ -362,7 +361,7 @@ export const POST = handleErrors(async (request: Request) => {
   if (error) { return error; }
   const { data, error: bodyError } = validateBody(Schema, await request.json());
   if (bodyError) { return bodyError; }
-  const result = await addLike(session.user.id, data);
+  const result = await useCases.likes.add(session.user.id, data);
   return NextResponse.json(result, { status: 201 });
 });
 ```
@@ -417,9 +416,9 @@ Auth: Auth.js session cookies (protected routes marked with 🔒, enforced by `p
 | GET | `/api/melon/chart` | Melon chart data |
 | GET | `/api/youtube/search` | Search YouTube |
 | GET | `/api/youtube/audio/info` | Video info |
-| GET | `/api/youtube/audio/stream` | Stream URL |
+| GET | `/api/youtube/audio/stream/:id` | Proxy audio stream (Range support) |
 | GET | `/api/youtube/audio/related` | Related videos |
-| GET | `/api/youtube/audio/play/:id` | Proxy stream |
+| GET | `/api/shared/:shareId` | Shared playlist |
 
 ### Protected Routes 🔒
 
@@ -431,21 +430,25 @@ Auth: Auth.js session cookies (protected routes marked with 🔒, enforced by `p
 | GET/PATCH/DELETE | `/api/playlists/:id` | Playlist CRUD |
 | POST/DELETE | `/api/playlists/:id/tracks` | Add/Remove tracks |
 | PUT | `/api/playlists/:id/reorder` | Reorder tracks |
+| POST | `/api/playlists/:id/duplicate` | Duplicate playlist |
+| POST | `/api/playlists/:id/share` | Toggle playlist sharing |
+| POST | `/api/playlists/:id/move` | Move playlist to folder |
+| GET | `/api/playlists/:id/smart-tracks` | Get smart playlist tracks |
+| GET/POST | `/api/folders` | List/Create folders |
+| PATCH/DELETE | `/api/folders/:id` | Update/Delete folder |
 | GET/POST | `/api/likes` | List/Add likes |
 | DELETE | `/api/likes/:videoId` | Remove like |
-| GET | `/api/likes/check/:videoId` | Check like status |
+| GET | `/api/likes/:videoId/check` | Check like status |
 | GET/POST | `/api/history` | List/Add history |
 | DELETE | `/api/history` | Clear history |
 | GET | `/api/channels/followed` | Followed channels |
 | GET | `/api/channels/:id` | Channel info |
 | POST/DELETE | `/api/channels/:id/follow` | Follow/Unfollow |
-| GET | `/api/onboarding/status` | Check if user needs onboarding |
-| GET | `/api/onboarding/genres` | Genre list with artists from Melon |
-| POST | `/api/onboarding` | Complete onboarding (seed likes/follows) |
 
 ## 작업 완료 체크리스트
 
 ### 기능 추가 시
+- [ ] `doc-sync` pre-check: 관련 `docs/` 파일 읽고 기존 정책과 충돌 없는지 확인 (`skill({ name: "doc-sync" })`)
 - [ ] 테스트 케이스 설계
 - [ ] 실패하는 테스트 작성 (Red)
 - [ ] 구현 코드 작성 (Green)
@@ -454,6 +457,10 @@ Auth: Auth.js session cookies (protected routes marked with 🔒, enforced by `p
 - [ ] `npm run lint` 통과
 - [ ] `npm run test` 통과
 - [ ] `npm run typecheck` 통과
+- [ ] `doc-sync` post-check: 코드 변경 후 `docs/` 업데이트 필요 항목 식별 및 반영
+- [ ] `docs/ubiquitous-language.md` 신규 용어 추가 여부 확인
+- [ ] `docs/README.md` 인덱스/관계 변경 여부 확인
+- [ ] API 엔드포인트 변경 시 본 문서 API Specification 테이블 업데이트
 
 ### 버그 수정 시
 - [ ] 회귀 테스트 작성 (Red)
@@ -461,3 +468,4 @@ Auth: Auth.js session cookies (protected routes marked with 🔒, enforced by `p
 - [ ] 기존 테스트 전체 통과 확인
 - [ ] `npm run build` 통과
 - [ ] `npm run lint` 통과
+- [ ] 문서화된 정책(동작)이 변경된 경우 `doc-sync` 실행 후 `docs/` 업데이트

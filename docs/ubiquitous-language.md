@@ -19,3 +19,8 @@ SONG Player 도메인에서 사용하는 공통 용어를 정의한다.
 | **Stream Proxy** | YouTube 오디오 스트림을 서버에서 중계. 여러 추출 전략으로 안정성 확보 |
 | **Melon Chart** | 멜론 차트 스크래핑 데이터. 실시간/HOT100/일간 차트를 홈 화면과 온보딩에 활용 |
 | **Track Snapshot** | 외부 데이터(YouTube)를 로컬에 저장할 때의 메타데이터 캡처. 원본 변경과 무관 |
+| **ShareId** | 공개 재생목록의 공유 식별자. 공개 설정 시 자동 생성 |
+| **SearchResultAudio** | YouTube 검색 결과 트랙. 검색 최소 단위 |
+| **ChannelInfo** | YouTube 채널 상세 정보. 팔로우 여부 포함 |
+| **AudioStatus** | 오디오 재생 상태머신 (idle/loading/playing/paused/error) |
+| **RepeatMode** | 반복 재생 모드 (off/all/one) |
