@@ -9,6 +9,7 @@ export const STALE_TIME = {
   MELON: 60 * 1000,
   RECOMMENDATIONS: 10 * 60 * 1000,
   RELATED: 5 * 60 * 1000,
+  LYRICS: 10 * 60 * 1000,
 } as const;
 
 export const REFETCH_ON_WINDOW_FOCUS = false;

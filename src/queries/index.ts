@@ -9,3 +9,4 @@ export * from './channels';
 export * from './home';
 export * from './melon';
 export * from './recommendations';
+export * from './lyrics';

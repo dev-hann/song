@@ -17,9 +17,10 @@ import {
   createMovePlaylistToFolder,
 } from './use-cases/playlists';
 import { createGetFollowedChannels, createGetChannel, createFollowChannel, createUnfollowChannel } from './use-cases/channels';
-import { createSearchYouTube, createGetAudioInfo, createGetStreamUrl } from './use-cases/audio';
+import { createSearchYouTube, createSearchMoreYouTube, createGetAudioInfo, createGetStreamUrl } from './use-cases/audio';
 import { createGetRelatedVideos, createGetPersonalizedRecommendations } from './use-cases/recommendations';
 import { createGetHomeData } from './use-cases/home';
+import { createGetLyrics } from './use-cases/lyrics';
 
 export const useCases = {
   likes: {
@@ -62,6 +63,7 @@ export const useCases = {
   },
   audio: {
     search: createSearchYouTube(youTubeProvider),
+    searchMore: createSearchMoreYouTube(youTubeProvider),
     getInfo: createGetAudioInfo(youTubeProvider),
     getStreamUrl: createGetStreamUrl(youTubeProvider),
   },
@@ -71,6 +73,9 @@ export const useCases = {
   },
   home: {
     get: createGetHomeData(melonProvider, historyRepository, likeRepository, channelRepository, youTubeProvider),
+  },
+  lyrics: {
+    get: createGetLyrics(youTubeProvider),
   },
 };
 

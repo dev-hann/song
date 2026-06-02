@@ -8,6 +8,7 @@ export async function GET(request: Request) {
   const paramsResult = SearchParamsSchema.safeParse({
     q: sp.get('q'),
     filter: sp.get('filter') ?? undefined,
+    continuation: sp.get('continuation') ?? undefined,
   });
 
   if (!paramsResult.success) {
@@ -17,10 +18,15 @@ export async function GET(request: Request) {
     );
   }
 
-  const { q } = paramsResult.data;
+  const { q, continuation } = paramsResult.data;
 
   try {
-    const searchResponse = await useCases.audio.search(q);
+    let searchResponse;
+    if (continuation) {
+      searchResponse = await useCases.audio.searchMore(continuation);
+    } else {
+      searchResponse = await useCases.audio.search(q);
+    }
     const validatedResponse = SearchResponseValidationSchema.parse(searchResponse);
     return NextResponse.json(validatedResponse);
   } catch (error) {

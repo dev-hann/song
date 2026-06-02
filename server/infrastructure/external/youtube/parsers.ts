@@ -1,4 +1,4 @@
-import type { SearchResultAudio, ExtendedAudio, ChannelInfo } from '@/types';
+import type { SearchResultAudio, ExtendedAudio, ChannelInfo, LyricsLine } from '@/types';
 import { YouTubeVideoItemSchema, extractVideoFields, YouTubeBasicInfoSchema } from './schemas';
 import { isAudioContent } from '@/server/domain/rules/audio-filter';
 import { ExtendedAudioSchema } from '@/server/domain/entities/audio';
@@ -53,6 +53,7 @@ export function toSearchResultAudio(item: unknown): SearchResultAudio | null {
 export function toSearchResponse(
   ytSearch: unknown,
   query: string,
+  hasContinuation = false,
 ): { query: string; results: SearchResultAudio[]; has_continuation: boolean } {
   if (!ytSearch || typeof ytSearch !== 'object') {
     return { query, results: [], has_continuation: false };
@@ -67,7 +68,7 @@ export function toSearchResponse(
   return {
     query,
     results: mappedResults,
-    has_continuation: false,
+    has_continuation: hasContinuation,
   };
 }
 
@@ -224,4 +225,48 @@ export function parseChannelData(
     following,
     videos,
   });
+}
+
+export function parseTranscriptSegments(segments: unknown): LyricsLine[] {
+  if (!Array.isArray(segments)) {
+    return [];
+  }
+
+  const lines: LyricsLine[] = [];
+
+  for (const seg of segments) {
+    if (!seg || typeof seg !== 'object') {
+      continue;
+    }
+
+    const obj = seg as Record<string, unknown>;
+
+    const rawStartMs = obj.start_ms;
+    const rawEndMs = obj.end_ms;
+    if (rawStartMs === undefined || rawEndMs === undefined) {
+      continue;
+    }
+
+    const startTimeMs = typeof rawStartMs === 'number' ? rawStartMs : Number(rawStartMs);
+    const endTimeMs = typeof rawEndMs === 'number' ? rawEndMs : Number(rawEndMs);
+
+    const rawSnippet = obj.snippet;
+    let text: string;
+    if (typeof rawSnippet === 'string') {
+      text = rawSnippet;
+    } else if (rawSnippet && typeof rawSnippet === 'object' && 'text' in rawSnippet) {
+      text = String((rawSnippet as Record<string, unknown>).text);
+    } else {
+      continue;
+    }
+
+    text = text.trim();
+    if (!text) {
+      continue;
+    }
+
+    lines.push({ startTimeMs, endTimeMs, text });
+  }
+
+  return lines;
 }

@@ -16,4 +16,5 @@ export const SearchResponseSchema = z.object({
   query: z.string(),
   results: z.array(SearchResultAudioSchema),
   has_continuation: z.boolean().default(false),
+  continuationToken: z.string().optional(),
 });

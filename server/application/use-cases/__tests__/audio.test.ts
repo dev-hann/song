@@ -1,15 +1,17 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from 'vitest';
-import { createSearchYouTube, createGetAudioInfo, createGetStreamUrl } from '../audio';
+import { createSearchYouTube, createSearchMoreYouTube, createGetAudioInfo, createGetStreamUrl } from '../audio';
 import type { ExtendedAudio } from '@/types';
 
 function createMockYouTube() {
   return {
     search: vi.fn(),
+    searchMore: vi.fn(),
     getInfo: vi.fn(),
     getStreamUrl: vi.fn(),
     getRelated: vi.fn(),
     getChannel: vi.fn(),
+    getLyrics: vi.fn(),
     markMwebFailed: vi.fn(),
     searchTracks: vi.fn(),
   };
@@ -55,6 +57,28 @@ describe('createSearchYouTube', () => {
 
     const search = createSearchYouTube(youtube);
     await expect(search('test')).rejects.toThrow('API error');
+  });
+});
+
+describe('createSearchMoreYouTube', () => {
+  it('returns next page results', async () => {
+    const youtube = createMockYouTube();
+    const nextPage = { results: [mockExtendedAudio], has_continuation: false };
+    youtube.searchMore.mockResolvedValue(nextPage);
+
+    const searchMore = createSearchMoreYouTube(youtube);
+    const result = await searchMore('token123');
+
+    expect(result).toEqual(nextPage);
+    expect(youtube.searchMore).toHaveBeenCalledWith('token123');
+  });
+
+  it('propagates errors from provider', async () => {
+    const youtube = createMockYouTube();
+    youtube.searchMore.mockRejectedValue(new Error('expired'));
+
+    const searchMore = createSearchMoreYouTube(youtube);
+    await expect(searchMore('bad-token')).rejects.toThrow('expired');
   });
 });
 

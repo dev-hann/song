@@ -3,8 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 type MockResponse = { body: Record<string, unknown>; status: number };
 
-const { mockSearch } = vi.hoisted(() => ({
+const { mockSearch, mockSearchMore } = vi.hoisted(() => ({
   mockSearch: vi.fn(),
+  mockSearchMore: vi.fn(),
 }));
 
 vi.mock('next/server', () => ({
@@ -15,7 +16,7 @@ vi.mock('next/server', () => ({
 
 vi.mock('@/server/application/wiring', () => ({
   useCases: {
-    audio: { search: mockSearch },
+    audio: { search: mockSearch, searchMore: mockSearchMore },
   },
 }));
 
@@ -31,7 +32,7 @@ beforeEach(() => {
 
 describe('GET /api/youtube/search', () => {
   it('returns search results for valid query', async () => {
-    const searchResponse = { query: 'test', results: [{ type: 'video', id: 'vid1', title: 'Test' }], filters: {} };
+    const searchResponse = { query: 'test', results: [{ type: 'video', id: 'vid1', title: 'Test' }], has_continuation: false };
     mockSearch.mockResolvedValue(searchResponse);
 
     const result = (await GET(new Request('http://localhost/api/youtube/search?q=test'))) as unknown as MockResponse;
@@ -69,5 +70,23 @@ describe('GET /api/youtube/search', () => {
 
     expect(result.status).toBe(500);
     expect(result.body.error).toBe('Failed to search');
+  });
+
+  it('calls searchMore when continuation param is provided', async () => {
+    const continuationResponse = { query: '', results: [{ type: 'video', id: 'vid2', title: 'Next' }], has_continuation: false };
+    mockSearchMore.mockResolvedValue(continuationResponse);
+
+    const result = (await GET(new Request('http://localhost/api/youtube/search?q=test&continuation=token123'))) as unknown as MockResponse;
+
+    expect(result.status).toBe(200);
+    expect(result.body.results).toHaveLength(1);
+    expect(mockSearchMore).toHaveBeenCalledWith('token123');
+    expect(mockSearch).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for continuation without query', async () => {
+    const result = (await GET(new Request('http://localhost/api/youtube/search?continuation=token123'))) as unknown as MockResponse;
+
+    expect(result.status).toBe(400);
   });
 });

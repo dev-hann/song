@@ -9,10 +9,18 @@ export interface SearchResultAudio {
   };
 }
 
+export interface SearchPage {
+  query: string;
+  results: SearchResultAudio[];
+  has_continuation: boolean;
+  continuationToken?: string;
+}
+
 export interface SearchResponse {
   query: string;
   results: SearchResultAudio[];
   has_continuation: boolean;
+  continuationToken?: string;
 }
 
 export type SearchFilter = 'video';

@@ -195,11 +195,11 @@ describe('toSearchResponse', () => {
     const ytSearch = {
       results: [legacyVideoItem],
     };
-    const response = toSearchResponse(ytSearch, 'rick astley');
+    const response = toSearchResponse(ytSearch, 'rick astley', true);
     expect(response.query).toBe('rick astley');
     expect(response.results).toHaveLength(1);
     expect(response.results[0].id).toBe('dQw4w9WgXcQ');
-    expect(response.has_continuation).toBe(false);
+    expect(response.has_continuation).toBe(true);
   });
 
   it('returns empty results for null input', () => {

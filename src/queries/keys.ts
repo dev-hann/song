@@ -10,6 +10,7 @@ export const queryKeys = {
     audio: {
       all: () => [...queryKeys.youtube.all(), 'audio'] as const,
       info: (id: string) => [...queryKeys.youtube.all(), 'audio', 'info', id] as const,
+      lyrics: (id: string) => [...queryKeys.youtube.all(), 'audio', 'lyrics', id] as const,
     },
   },
 

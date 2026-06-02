@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const SearchParamsSchema = z.object({
   q: z.string().min(1, '검색어를 입력해주세요'),
   filter: z.enum(['video', 'channel', 'playlist']).default('video'),
+  continuation: z.string().min(1).optional(),
 });
 
 export const VideoIdSchema = z.object({
